@@ -1,0 +1,201 @@
+﻿date_availability_produit,nom,reference,prix_ttc,Taxe,categorie,prix_achat
+12/05/2026,Tshirt HOT,HOT_001,9,"11,65%",Akanjo,5
+11/05/2026,Pantalon HOT,HOT_002,12,"5,60%",Accessoire,7
+12/05/2026,Casquette HOT,HOT_003,15,"20,00%",Electronique,9
+11/05/2026,Montre HOT,HOT_004,18,1%,Chaussure,11
+12/05/2026,Bracelet HOT,HOT_005,22,"11,65%",Sac,14
+11/05/2026,Ecouteurs HOT,HOT_006,25,"5,60%",Sport,16
+12/05/2026,Sac a dos HOT,HOT_007,28,"20,00%",Bijoux,18
+11/05/2026,Chaussures HOT,HOT_008,32,0%,Akanjo,21
+12/05/2026,Short HOT,HOT_009,35,"11,65%",Accessoire,24
+11/05/2026,Bague HOT,HOT_010,38,"5,60%",Electronique,27
+12/05/2026,Veste HOT,HOT_011,42,"20,00%",Chaussure,30
+11/05/2026,Jupe HOT,HOT_012,45,0%,Sac,33
+12/05/2026,Sandales HOT,HOT_013,49,"11,65%",Sport,36
+11/05/2026,Collier HOT,HOT_014,55,"5,60%",Bijoux,40
+12/05/2026,Ceinture HOT,HOT_015,59,"20,00%",Akanjo,44
+11/05/2026,Gants HOT,HOT_016,65,0%,Accessoire,50
+12/05/2026,Echarpe HOT,HOT_017,75,"11,65%",Electronique,55
+11/05/2026,Chapeau HOT,HOT_018,89,"5,60%",Chaussure,65
+12/05/2026,Lunettes HOT,HOT_019,99,"20,00%",Sac,72
+11/05/2026,Portefeuille HOT,HOT_020,120,0%,Sport,90
+08/05/2026,Tshirt NEW,NEW_021,9,"11,65%",Bijoux,5
+07/05/2026,Pantalon NEW,NEW_022,12,"5,60%",Akanjo,7
+06/05/2026,Casquette NEW,NEW_023,15,"20,00%",Accessoire,9
+05/05/2026,Montre NEW,NEW_024,18,0%,Electronique,11
+10/05/2026,Bracelet NEW,NEW_025,22,"11,65%",Chaussure,14
+09/05/2026,Ecouteurs NEW,NEW_026,25,"5,60%",Sac,16
+08/05/2026,Sac a dos NEW,NEW_027,28,"20,00%",Sport,18
+07/05/2026,Chaussures NEW,NEW_028,32,0%,Bijoux,21
+06/05/2026,Short NEW,NEW_029,35,"11,65%",Akanjo,24
+05/05/2026,Bague NEW,NEW_030,38,"5,60%",Accessoire,27
+10/05/2026,Veste NEW,NEW_031,42,"20,00%",Electronique,30
+09/05/2026,Jupe NEW,NEW_032,45,0%,Chaussure,33
+08/05/2026,Sandales NEW,NEW_033,49,"11,65%",Sac,36
+07/05/2026,Collier NEW,NEW_034,55,"5,60%",Sport,40
+06/05/2026,Ceinture NEW,NEW_035,59,"20,00%",Bijoux,44
+05/05/2026,Gants NEW,NEW_036,65,0%,Akanjo,50
+10/05/2026,Echarpe NEW,NEW_037,75,"11,65%",Accessoire,55
+09/05/2026,Chapeau NEW,NEW_038,89,"5,60%",Electronique,65
+08/05/2026,Lunettes NEW,NEW_039,99,"20,00%",Chaussure,72
+07/05/2026,Portefeuille NEW,NEW_040,120,0%,Sac,90
+06/05/2026,Tshirt NEW,NEW_041,9,"11,65%",Sport,5
+05/05/2026,Pantalon NEW,NEW_042,12,"5,60%",Bijoux,7
+10/05/2026,Casquette NEW,NEW_043,15,"20,00%",Akanjo,9
+09/05/2026,Montre NEW,NEW_044,18,0%,Accessoire,11
+08/05/2026,Bracelet NEW,NEW_045,22,"11,65%",Electronique,14
+07/05/2026,Ecouteurs NEW,NEW_046,25,"5,60%",Chaussure,16
+06/05/2026,Sac a dos NEW,NEW_047,28,"20,00%",Sac,18
+05/05/2026,Chaussures NEW,NEW_048,32,0%,Sport,21
+10/05/2026,Short NEW,NEW_049,35,"11,65%",Bijoux,24
+09/05/2026,Bague NEW,NEW_050,38,"5,60%",Akanjo,27
+15/04/2026,Veste,PRD_051,42,"20,00%",Accessoire,30
+01/04/2026,Jupe,PRD_052,45,0%,Electronique,33
+15/03/2026,Sandales,PRD_053,49,"11,65%",Chaussure,36
+01/12/2025,Collier,PRD_054,55,"5,60%",Sac,40
+01/05/2026,Ceinture,PRD_055,59,"20,00%",Sport,44
+20/04/2026,Gants,PRD_056,65,0%,Bijoux,50
+15/04/2026,Echarpe,PRD_057,75,"11,65%",Akanjo,55
+01/04/2026,Chapeau,PRD_058,89,"5,60%",Accessoire,65
+15/03/2026,Lunettes,PRD_059,99,"20,00%",Electronique,72
+01/12/2025,Portefeuille,PRD_060,120,0%,Chaussure,90
+01/05/2026,Tshirt,PRD_061,9,"11,65%",Sac,5
+20/04/2026,Pantalon,PRD_062,12,"5,60%",Sport,7
+15/04/2026,Casquette,PRD_063,15,"20,00%",Bijoux,9
+01/04/2026,Montre,PRD_064,18,0%,Akanjo,11
+15/03/2026,Bracelet,PRD_065,22,"11,65%",Accessoire,14
+01/12/2025,Ecouteurs,PRD_066,25,"5,60%",Electronique,16
+01/05/2026,Sac a dos,PRD_067,28,"20,00%",Chaussure,18
+20/04/2026,Chaussures,PRD_068,32,0%,Sac,21
+15/04/2026,Short,PRD_069,35,"11,65%",Sport,24
+01/04/2026,Bague,PRD_070,38,"5,60%",Bijoux,27
+15/03/2026,Veste,PRD_071,42,"20,00%",Akanjo,30
+01/12/2025,Jupe,PRD_072,45,0%,Accessoire,33
+01/05/2026,Sandales,PRD_073,49,"11,65%",Electronique,36
+20/04/2026,Collier,PRD_074,55,"5,60%",Chaussure,40
+15/04/2026,Ceinture,PRD_075,59,"20,00%",Sac,44
+01/04/2026,Gants,PRD_076,65,0%,Sport,50
+15/03/2026,Echarpe,PRD_077,75,"11,65%",Bijoux,55
+01/12/2025,Chapeau,PRD_078,89,"5,60%",Akanjo,65
+01/05/2026,Lunettes,PRD_079,99,"20,00%",Accessoire,72
+20/04/2026,Portefeuille,PRD_080,120,0%,Electronique,90
+15/04/2026,Tshirt,PRD_081,9,"11,65%",Chaussure,5
+01/04/2026,Pantalon,PRD_082,12,"5,60%",Sac,7
+15/03/2026,Casquette,PRD_083,15,"20,00%",Sport,9
+01/12/2025,Montre,PRD_084,18,0%,Bijoux,11
+01/05/2026,Bracelet,PRD_085,22,"11,65%",Akanjo,14
+20/04/2026,Ecouteurs,PRD_086,25,"5,60%",Accessoire,16
+15/04/2026,Sac a dos,PRD_087,28,"20,00%",Electronique,18
+01/04/2026,Chaussures,PRD_088,32,0%,Chaussure,21
+15/03/2026,Short,PRD_089,35,"11,65%",Sac,24
+01/12/2025,Bague,PRD_090,38,"5,60%",Sport,27
+01/05/2026,Veste,PRD_091,42,"20,00%",Bijoux,30
+20/04/2026,Jupe,PRD_092,45,0%,Akanjo,33
+15/04/2026,Sandales,PRD_093,49,"11,65%",Accessoire,36
+01/04/2026,Collier,PRD_094,55,"5,60%",Electronique,40
+15/03/2026,Ceinture,PRD_095,59,"20,00%",Chaussure,44
+01/12/2025,Gants,PRD_096,65,0%,Sac,50
+01/05/2026,Echarpe,PRD_097,75,"11,65%",Sport,55
+20/04/2026,Chapeau,PRD_098,89,"5,60%",Bijoux,65
+15/04/2026,Lunettes,PRD_099,99,"20,00%",Akanjo,72
+01/04/2026,Portefeuille,PRD_100,120,0%,Accessoire,90
+15/03/2026,Tshirt,PRD_101,9,"11,65%",Electronique,5
+01/12/2025,Pantalon,PRD_102,12,"5,60%",Chaussure,7
+01/05/2026,Casquette,PRD_103,15,"20,00%",Sac,9
+20/04/2026,Montre,PRD_104,18,0%,Sport,11
+15/04/2026,Bracelet,PRD_105,22,"11,65%",Bijoux,14
+01/04/2026,Ecouteurs,PRD_106,25,"5,60%",Akanjo,16
+15/03/2026,Sac a dos,PRD_107,28,"20,00%",Accessoire,18
+01/12/2025,Chaussures,PRD_108,32,0%,Electronique,21
+01/05/2026,Short,PRD_109,35,"11,65%",Chaussure,24
+20/04/2026,Bague,PRD_110,38,"5,60%",Sac,27
+15/04/2026,Veste,PRD_111,42,"20,00%",Sport,30
+01/04/2026,Jupe,PRD_112,45,0%,Bijoux,33
+15/03/2026,Sandales,PRD_113,49,"11,65%",Akanjo,36
+01/12/2025,Collier,PRD_114,55,"5,60%",Accessoire,40
+01/05/2026,Ceinture,PRD_115,59,"20,00%",Electronique,44
+20/04/2026,Gants,PRD_116,65,0%,Chaussure,50
+15/04/2026,Echarpe,PRD_117,75,"11,65%",Sac,55
+01/04/2026,Chapeau,PRD_118,89,"5,60%",Sport,65
+15/03/2026,Lunettes,PRD_119,99,"20,00%",Bijoux,72
+01/12/2025,Portefeuille,PRD_120,120,0%,Akanjo,90
+01/05/2026,Tshirt,PRD_121,9,"11,65%",Accessoire,5
+20/04/2026,Pantalon,PRD_122,12,"5,60%",Electronique,7
+15/04/2026,Casquette,PRD_123,15,"20,00%",Chaussure,9
+01/04/2026,Montre,PRD_124,18,0%,Sac,11
+15/03/2026,Bracelet,PRD_125,22,"11,65%",Sport,14
+01/12/2025,Ecouteurs,PRD_126,25,"5,60%",Bijoux,16
+01/05/2026,Sac a dos,PRD_127,28,"20,00%",Akanjo,18
+20/04/2026,Chaussures,PRD_128,32,0%,Accessoire,21
+15/04/2026,Short,PRD_129,35,"11,65%",Electronique,24
+01/04/2026,Bague,PRD_130,38,"5,60%",Chaussure,27
+15/03/2026,Veste,PRD_131,42,"20,00%",Sac,30
+01/12/2025,Jupe,PRD_132,45,0%,Sport,33
+01/05/2026,Sandales,PRD_133,49,"11,65%",Bijoux,36
+20/04/2026,Collier,PRD_134,55,"5,60%",Akanjo,40
+15/04/2026,Ceinture,PRD_135,59,"20,00%",Accessoire,44
+01/04/2026,Gants,PRD_136,65,0%,Electronique,50
+15/03/2026,Echarpe,PRD_137,75,"11,65%",Chaussure,55
+01/12/2025,Chapeau,PRD_138,89,"5,60%",Sac,65
+01/05/2026,Lunettes,PRD_139,99,"20,00%",Sport,72
+20/04/2026,Portefeuille,PRD_140,120,0%,Bijoux,90
+15/04/2026,Tshirt,PRD_141,9,"11,65%",Akanjo,5
+01/04/2026,Pantalon,PRD_142,12,"5,60%",Accessoire,7
+15/03/2026,Casquette,PRD_143,15,"20,00%",Electronique,9
+01/12/2025,Montre,PRD_144,18,0%,Chaussure,11
+01/05/2026,Bracelet,PRD_145,22,"11,65%",Sac,14
+20/04/2026,Ecouteurs,PRD_146,25,"5,60%",Sport,16
+15/04/2026,Sac a dos,PRD_147,28,"20,00%",Bijoux,18
+01/04/2026,Chaussures,PRD_148,32,0%,Akanjo,21
+15/03/2026,Short,PRD_149,35,"11,65%",Accessoire,24
+01/12/2025,Bague,PRD_150,38,"5,60%",Electronique,27
+01/05/2026,Veste,PRD_151,42,"20,00%",Chaussure,30
+20/04/2026,Jupe,PRD_152,45,0%,Sac,33
+15/04/2026,Sandales,PRD_153,49,"11,65%",Sport,36
+01/04/2026,Collier,PRD_154,55,"5,60%",Bijoux,40
+15/03/2026,Ceinture,PRD_155,59,"20,00%",Akanjo,44
+01/12/2025,Gants,PRD_156,65,0%,Accessoire,50
+01/05/2026,Echarpe,PRD_157,75,"11,65%",Electronique,55
+20/04/2026,Chapeau,PRD_158,89,"5,60%",Chaussure,65
+15/04/2026,Lunettes,PRD_159,99,"20,00%",Sac,72
+01/04/2026,Portefeuille,PRD_160,120,0%,Sport,90
+15/03/2026,Tshirt,PRD_161,9,"11,65%",Bijoux,5
+01/12/2025,Pantalon,PRD_162,12,"5,60%",Akanjo,7
+01/05/2026,Casquette,PRD_163,15,"20,00%",Accessoire,9
+20/04/2026,Montre,PRD_164,18,0%,Electronique,11
+15/04/2026,Bracelet,PRD_165,22,"11,65%",Chaussure,14
+01/04/2026,Ecouteurs,PRD_166,25,"5,60%",Sac,16
+15/03/2026,Sac a dos,PRD_167,28,"20,00%",Sport,18
+01/12/2025,Chaussures,PRD_168,32,0%,Bijoux,21
+01/05/2026,Short,PRD_169,35,"11,65%",Akanjo,24
+20/04/2026,Bague,PRD_170,38,"5,60%",Accessoire,27
+15/04/2026,Veste,PRD_171,42,"20,00%",Electronique,30
+01/04/2026,Jupe,PRD_172,45,0%,Chaussure,33
+15/03/2026,Sandales,PRD_173,49,"11,65%",Sac,36
+01/12/2025,Collier,PRD_174,55,"5,60%",Sport,40
+01/05/2026,Ceinture,PRD_175,59,"20,00%",Bijoux,44
+20/04/2026,Gants,PRD_176,65,0%,Akanjo,50
+15/04/2026,Echarpe,PRD_177,75,"11,65%",Accessoire,55
+01/04/2026,Chapeau,PRD_178,89,"5,60%",Electronique,65
+15/03/2026,Lunettes,PRD_179,99,"20,00%",Chaussure,72
+01/12/2025,Portefeuille,PRD_180,120,0%,Sac,90
+01/05/2026,Tshirt,PRD_181,9,"11,65%",Sport,5
+20/04/2026,Pantalon,PRD_182,12,"5,60%",Bijoux,7
+15/04/2026,Casquette,PRD_183,15,"20,00%",Akanjo,9
+01/04/2026,Montre,PRD_184,18,0%,Accessoire,11
+15/03/2026,Bracelet,PRD_185,22,"11,65%",Electronique,14
+01/12/2025,Ecouteurs,PRD_186,25,"5,60%",Chaussure,16
+01/05/2026,Sac a dos,PRD_187,28,"20,00%",Sac,18
+20/04/2026,Chaussures,PRD_188,32,0%,Sport,21
+15/04/2026,Short,PRD_189,35,"11,65%",Bijoux,24
+01/04/2026,Bague,PRD_190,38,"5,60%",Akanjo,27
+15/03/2026,Veste,PRD_191,42,"20,00%",Accessoire,30
+01/12/2025,Jupe,PRD_192,45,0%,Electronique,33
+01/05/2026,Sandales,PRD_193,49,"11,65%",Chaussure,36
+20/04/2026,Collier,PRD_194,55,"5,60%",Sac,40
+15/04/2026,Ceinture,PRD_195,59,"20,00%",Sport,44
+01/04/2026,Gants,PRD_196,65,0%,Bijoux,50
+15/03/2026,Echarpe,PRD_197,75,"11,65%",Akanjo,55
+01/12/2025,Chapeau,PRD_198,89,"5,60%",Accessoire,65
+01/05/2026,Lunettes,PRD_199,99,"20,00%",Electronique,72
+20/04/2026,Portefeuille,PRD_200,120,0%,Chaussure,90
