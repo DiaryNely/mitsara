@@ -12,6 +12,7 @@ import FrontCartView from '../views/front/FrontCartView.vue'
 import FrontCheckoutView from '../views/front/FrontCheckoutView.vue'
 import FrontOrdersView from '../views/front/FrontOrdersView.vue'
 import FrontOrderDetailView from '../views/front/FrontOrderDetailView.vue'
+import FrontDuplicateOrderView from '../views/front/FrontDuplicateOrderView.vue'
 import FrontLoginView from '../views/front/FrontLoginView.vue'
 import { beneficeRoute } from '../views/benefice/beneficeRoute'
 
@@ -108,6 +109,12 @@ const routes = [
 		path: '/front/orders/:id',
 		name: 'front-order-detail',
 		component: FrontOrderDetailView,
+		meta: { requiresAuth: false, layout: 'front', frontAuth: true },
+	},
+	{
+		path: '/front/orders/:id/duplicate',
+		name: 'front-order-duplicate',
+		component: FrontDuplicateOrderView,
 		meta: { requiresAuth: false, layout: 'front', frontAuth: true },
 	},
 	beneficeRoute,

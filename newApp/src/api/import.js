@@ -1096,7 +1096,11 @@ async function stageOrders(orders, txCtx, onProgress, onLog) {
         // Calcul totaux
         let totalAmountTTC = 0
         let totalAmountHT = 0
-        const orderDetails = []
+
+        // Map de dédoublonnage par (productId, productAttributeId) — filet de sécurité
+        // si deux variantes distinctes du CSV résolvent vers le même id_product_attribute
+        // (ex : variante inconnue → 0 + même produit sans variante → 0).
+        const detailMap = new Map()
 
         for (const item of order.achat) {
             const product = importContext.products.get(item.reference)
@@ -1114,23 +1118,41 @@ async function stageOrders(orders, txCtx, onProgress, onLog) {
                     : calculatePriceHT(unitPriceTTC, product.taxRate)
             )
 
-            const lineTotalTTC = unitPriceTTC * item.quantity
-            const lineTotalHT = unitPriceHT * item.quantity
-            totalAmountTTC += lineTotalTTC
-            totalAmountHT += lineTotalHT
+            const rowKey = `${product.id}::${productAttributeId}`
 
-            orderDetails.push({
-                productId: product.id,
-                productAttributeId,
-                productName: product.name,
-                reference: item.reference,
-                variant,
-                quantity: item.quantity,
-                unitPrice: unitPriceHT,
-                unitPriceTTC,
-                totalPriceTTC: lineTotalTTC,
-                totalPriceHT: lineTotalHT,
-            })
+            if (detailMap.has(rowKey)) {
+                const existing = detailMap.get(rowKey)
+                existing.quantity += item.quantity
+                existing.totalPriceTTC += unitPriceTTC * item.quantity
+                existing.totalPriceHT  += unitPriceHT  * item.quantity
+                if (typeof onLog === 'function') {
+                    onLog(
+                        `  ⚠️ Doublon produit "${item.reference}"${variant ? ` (${variant})` : ''} fusionné (qty +${item.quantity}).`,
+                        'warn'
+                    )
+                }
+            } else {
+                detailMap.set(rowKey, {
+                    productId: product.id,
+                    productAttributeId,
+                    productName: product.name,
+                    reference: item.reference,
+                    variant,
+                    quantity: item.quantity,
+                    unitPrice: unitPriceHT,
+                    unitPriceTTC,
+                    totalPriceTTC: unitPriceTTC * item.quantity,
+                    totalPriceHT:  unitPriceHT  * item.quantity,
+                })
+            }
+        }
+
+        const orderDetails = Array.from(detailMap.values())
+
+        // Recalcul des totaux à partir des lignes dédoublonnées
+        for (const d of orderDetails) {
+            totalAmountTTC += d.totalPriceTTC
+            totalAmountHT  += d.totalPriceHT
         }
 
         const normalizedDate = normalizeCsvOrderDate(order.date)
@@ -1252,27 +1274,42 @@ async function stageOrders(orders, txCtx, onProgress, onLog) {
         const targetStateId = isDeliveredState ? ORDER_STATE_DELIVERED_ID : null
 
         if (targetStateId && targetStateId !== initialStateId) {
-            try {
-                const stateUpdateResult = await updateOrderStateWithStockMovement({
-                    orderId,
-                    stateId: targetStateId,
-                    dateAdd: normalizedDate,
-                })
-                if (typeof onLog === 'function') {
-                    onLog(`  ✅ Etat commande mis a jour: ${rawState || targetStateId}`)
-                    onLog(`     Module retourné: date_add=${stateUpdateResult.date_add}`)
-                }
+            // Passage d'état BLOQUANT : une commande "Livré" sans état correct = donnée corrompue.
+            const stateUpdateResult = await updateOrderStateWithStockMovement({
+                orderId,
+                stateId: targetStateId,
+                dateAdd: normalizedDate,
+            })
+            if (typeof onLog === 'function') {
+                onLog(`  ✅ Etat commande mis a jour: ${rawState || targetStateId}`)
+                onLog(`     Module retourné: date_add=${stateUpdateResult.date_add}`)
+            }
 
-                // Correction de la date_add si elle n'a pas été appliquée
-                if (normalizedDate && normalizedDate !== stateUpdateResult.date_add) {
-                    await fixOrderHistoryDate(orderId, normalizedDate, onLog)
-                }
-            } catch (error) {
-                if (typeof onLog === 'function') {
-                    onLog(
-                        `  ⚠️ Etat commande non applique (commande ${orderId}): ${error?.message || error}`,
-                        'warn'
+            // Correction de la date_add si elle n'a pas été appliquée
+            if (normalizedDate && normalizedDate !== stateUpdateResult.date_add) {
+                await fixOrderHistoryDate(orderId, normalizedDate, onLog)
+            }
+
+            // Enregistrement BLOQUANT des mouvements de stock sortie (ps_stock_mvt).
+            // updateOrderStateWithStockMovement décrémente stock_available mais n'écrit
+            // pas toujours ps_stock_mvt via le WS — on le force pour chaque ligne.
+            for (const detail of orderDetails) {
+                const mvtId = await recordStockMovementForProduct({
+                    productId: detail.productId,
+                    attributeId: detail.productAttributeId || 0,
+                    physical_quantity: detail.quantity,
+                    sign: -1,
+                    date_add: normalizedDate,
+                })
+                if (mvtId === null) {
+                    throw new Error(
+                        `Mouvement de stock sortie impossible pour "${detail.productName}" ` +
+                        `(produit ${detail.productId}). ` +
+                        'Vérifiez les permissions WS sur stock_availables et stock_movements.'
                     )
+                }
+                if (typeof onLog === 'function') {
+                    onLog(`  ✅ Mouvement stock sortie: ${detail.productName} ×${detail.quantity}`)
                 }
             }
         }
@@ -1308,7 +1345,7 @@ async function stageOrders(orders, txCtx, onProgress, onLog) {
 // Point d'entrée principal — import transactionnel tout-ou-rien
 // ---------------------------------------------------------------------------
 export async function runTransactionalImport(
-    { csvProduits, csvDeclinaisons, csvCommandes, zipImages },
+    { csvProduits, csvDeclinaisons, csvCommandes, zipImages ,importImages = true},
     onProgress,
     onLog
 ) {
@@ -1344,7 +1381,16 @@ export async function runTransactionalImport(
     try {
         await stageProducts(products, txCtx, onProgress, onLog)
         await stageCombinations(variants, txCtx, onProgress, onLog)
+
+        if(importImages){
+
         await stageImages(zipImages, txCtx, onProgress, onLog)
+
+        }else {
+            log('etape upload image ignore')
+        }
+
+
         await stageOrders(orders, txCtx, onProgress, onLog)
 
         log('\n🎉 Import terminé avec succès — aucune donnée partielle.')

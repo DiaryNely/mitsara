@@ -12,6 +12,9 @@ const stateMap = ref({})
 const loading = ref(false)
 const error = ref('')
 
+const openDuplicateId = ref(null)
+const nbDuplications = ref(1)
+
 const PAGE_SIZE = 20
 const currentPage = ref(1)
 const hasMore = ref(false)
@@ -24,6 +27,24 @@ const formatDate = (dateStr) => {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(d)
+}
+
+const toggleDuplicatePanel = (orderId) => {
+  if (openDuplicateId.value === orderId) {
+    openDuplicateId.value = null
+  } else {
+    openDuplicateId.value = orderId
+    nbDuplications.value = 1
+  }
+}
+
+const closeDuplicatePanel = () => {
+  openDuplicateId.value = null
+}
+
+const goToDuplicateConfirm = (orderId) => {
+  const nb = Math.max(1, Math.min(999, Number(nbDuplications.value) || 1))
+  router.push(`/front/orders/${orderId}/duplicate?nb=${nb}`)
 }
 
 const loadOrders = async (page = 1) => {
@@ -106,50 +127,99 @@ onMounted(() => loadOrders(1))
 
       <!-- Liste -->
       <div v-else class="orders-list">
-        <article
-          v-for="order in orders"
-          :key="order.id"
-          class="order-card"
-          @click="router.push(`/front/orders/${order.id}`)"
-        >
-          <!-- Référence & date -->
-          <div class="order-id-col">
-            <span class="order-ref">{{ order.reference || `#${order.id}` }}</span>
-            <span class="order-sub">ID {{ order.id }}</span>
-          </div>
+        <template v-for="order in orders" :key="order.id">
+          <article
+            class="order-card"
+            @click="router.push(`/front/orders/${order.id}`)"
+          >
+            <!-- Référence & date -->
+            <div class="order-id-col">
+              <span class="order-ref">{{ order.reference || `#${order.id}` }}</span>
+              <span class="order-sub">ID {{ order.id }}</span>
+            </div>
 
-          <!-- Date -->
-          <div class="order-date-col">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="2" y="3" width="10" height="9" rx="2" stroke="currentColor" stroke-width="1.2"/>
-              <path d="M5 2v2M9 2v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M2 6h10" stroke="currentColor" stroke-width="1.2"/>
-            </svg>
-            {{ formatDate(order.dateAdd) }}
-          </div>
-
-          <!-- Statut -->
-          <div class="order-state-col">
-            <span class="order-state">
-              {{ stateMap[order.currentState] || `État ${order.currentState}` }}
-            </span>
-          </div>
-
-          <!-- Total -->
-          <div class="order-total-col">
-            {{ formatPrice(order.totalPaid) }}
-          </div>
-
-          <!-- Action -->
-          <div class="order-action-col">
-            <button class="details-btn" type="button" @click.stop="router.push(`/front/orders/${order.id}`)">
-              Détails
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M3 6.5h7M7 3.5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- Date -->
+            <div class="order-date-col">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="2" y="3" width="10" height="9" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M5 2v2M9 2v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M2 6h10" stroke="currentColor" stroke-width="1.2"/>
               </svg>
-            </button>
+              {{ formatDate(order.dateAdd) }}
+            </div>
+
+            <!-- Statut -->
+            <div class="order-state-col">
+              <span class="order-state">
+                {{ stateMap[order.currentState] || `État ${order.currentState}` }}
+              </span>
+            </div>
+
+            <!-- Total -->
+            <div class="order-total-col">
+              {{ formatPrice(order.totalPaid) }}
+            </div>
+
+            <!-- Actions -->
+            <div class="order-action-col">
+              <button class="details-btn" type="button" @click.stop="router.push(`/front/orders/${order.id}`)">
+                Détails
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M3 6.5h7M7 3.5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button
+                class="dup-toggle-btn"
+                type="button"
+                :class="{ active: openDuplicateId === order.id }"
+                @click.stop="toggleDuplicatePanel(order.id)"
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <rect x="1" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M4 4V2.5A1.5 1.5 0 0 1 5.5 1H10.5A1.5 1.5 0 0 1 12 2.5V7.5A1.5 1.5 0 0 1 10.5 9H9" stroke="currentColor" stroke-width="1.3"/>
+                </svg>
+                Dupliquer
+              </button>
+            </div>
+          </article>
+
+          <!-- Panneau de duplication (hors du grid article) -->
+          <div
+            v-if="openDuplicateId === order.id"
+            class="duplicate-panel"
+            @click.stop
+          >
+            <div class="dup-panel-inner">
+              <div class="dup-info">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M4 4V2.5A1.5 1.5 0 0 1 5.5 1H10.5A1.5 1.5 0 0 1 12 2.5V7.5A1.5 1.5 0 0 1 10.5 9H9" stroke="currentColor" stroke-width="1.3"/>
+                </svg>
+                <span class="dup-label">Multiplicateur de quantité</span>
+                <span class="dup-hint">Les quantités de chaque produit seront multipliées par ce nombre.</span>
+              </div>
+              <div class="dup-controls">
+                <div class="dup-input-wrap">
+                  <span class="dup-input-prefix">×</span>
+                  <input
+                    type="number"
+                    class="dup-input"
+                    v-model.number="nbDuplications"
+                    min="1"
+                    max="999"
+                    @click.stop
+                  />
+                </div>
+                <button class="dup-btn-validate" type="button" @click.stop="goToDuplicateConfirm(order.id)">
+                  Vérifier et valider
+                </button>
+                <button class="dup-btn-cancel" type="button" @click.stop="closeDuplicatePanel()">
+                  Annuler
+                </button>
+              </div>
+            </div>
           </div>
-        </article>
+        </template>
       </div>
 
       <!-- Pagination -->
@@ -318,7 +388,7 @@ onMounted(() => loadOrders(1))
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .order-card {
@@ -392,6 +462,8 @@ onMounted(() => loadOrders(1))
 
 .order-action-col {
   display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .details-btn {
@@ -414,6 +486,151 @@ onMounted(() => loadOrders(1))
   border-color: var(--front-accent);
   color: var(--front-accent);
   background: var(--front-accent-light);
+}
+
+.dup-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--front-border);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--front-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.dup-toggle-btn:hover,
+.dup-toggle-btn.active {
+  border-color: var(--front-accent);
+  color: var(--front-accent);
+  background: var(--front-accent-light);
+}
+
+/* ── Panneau de duplication ───────────────────────── */
+.duplicate-panel {
+  background: var(--front-surface);
+  border: 1px solid var(--front-accent);
+  border-top: none;
+  border-radius: 0 0 var(--front-radius) var(--front-radius);
+  padding: 16px 20px;
+  margin-top: -4px;
+}
+
+.dup-panel-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.dup-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--front-muted);
+  flex: 1;
+  min-width: 200px;
+}
+
+.dup-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--front-text);
+}
+
+.dup-hint {
+  font-size: 12px;
+  color: var(--front-muted);
+}
+
+.dup-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dup-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--front-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--front-bg);
+}
+
+.dup-input-prefix {
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--front-accent);
+  background: var(--front-accent-light);
+  line-height: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.dup-input {
+  width: 64px;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--front-text);
+  background: transparent;
+  outline: none;
+  text-align: center;
+}
+
+.dup-input::-webkit-inner-spin-button,
+.dup-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.dup-btn-validate {
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--front-accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+  box-shadow: 0 3px 10px rgba(99,102,241,.25);
+  white-space: nowrap;
+}
+
+.dup-btn-validate:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.dup-btn-cancel {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--front-border);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--front-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.dup-btn-cancel:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-light);
 }
 
 /* ── Pagination ───────────────────────────────────── */
@@ -481,6 +698,18 @@ onMounted(() => loadOrders(1))
     grid-row: 2 / 4;
     align-self: center;
     justify-self: end;
+    flex-direction: column;
+  }
+
+  .dup-panel-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dup-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 </style>

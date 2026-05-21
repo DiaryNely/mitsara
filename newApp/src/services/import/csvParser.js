@@ -6,6 +6,40 @@
 //  - Les accents et caractères spéciaux dans les en-têtes stoppent l'import.
 //  - Aucune colonne supplémentaire ou manquante n'est tolérée.
 
+/**
+ * Convertit une chaîne de prix en nombre flottant.
+ * Gère les formats :
+ *  - français : "1.000,50"  → 1000.50  (point = milliers, virgule = décimal)
+ *  - anglais  : "1,000.50"  → 1000.50  (virgule = milliers, point = décimal)
+ *  - simple   : "199,1"     → 199.1
+ *  - entier   : "135"       → 135
+ */
+function parsePrice(raw) {
+  let s = String(raw ?? '').trim()
+  if (!s) return 0
+
+  const hasComma = s.includes(',')
+  const hasDot   = s.includes('.')
+
+  if (hasComma && hasDot) {
+    const lastComma = s.lastIndexOf(',')
+    const lastDot   = s.lastIndexOf('.')
+    if (lastComma > lastDot) {
+      // Format français "1.000,50" — point = séparateur milliers, virgule = décimal
+      s = s.replace(/\./g, '').replace(',', '.')
+    } else {
+      // Format anglais "1,000.50" — virgule = séparateur milliers
+      s = s.replace(/,/g, '')
+    }
+  } else {
+    // Un seul séparateur : virgule → point
+    s = s.replace(',', '.')
+  }
+
+  const value = parseFloat(s)
+  return Number.isFinite(value) ? value : 0
+}
+
 // En-têtes attendus — format CANONIQUE tel qu'utilisé dans les CSV de production.
 // La comparaison est insensible à la casse, mais tout autre écart (accent absent,
 // caractère substitué, etc.) provoque l'arrêt de l'import.
@@ -79,33 +113,56 @@ function parseCSVLine(line) {
 /**
  * Parse le champ "achat" du fichier3
  * Format: "[(""T_01"";3;""ngoza""),(""C_03"";1;"""")]"
+ *
+ * Règles de robustesse :
+ *  - Les entrées avec quantité <= 0 ou non-numérique sont ignorées.
+ *  - Les doublons (même référence + même variante, insensible à la casse et aux espaces)
+ *    sont fusionnés en additionnant les quantités, pour éviter le HTTP 500 de PrestaShop
+ *    qui rejette un panier avec deux lignes identiques (id_product, id_product_attribute).
+ *  - La variante est trimée ; une variante vide est normalisée en null.
  */
 export function parseAchatField(achatString) {
-  if (!achatString || achatString === '[]') return []
+  if (!achatString || !achatString.trim() || achatString.trim() === '[]') return []
 
-  // Enlever les crochets
-  let content = achatString
+  let content = achatString.trim()
   if (content.startsWith('[') && content.endsWith(']')) {
-    content = content.slice(1, -1)
+    content = content.slice(1, -1).trim()
   }
+  if (!content) return []
 
-  const items = []
+  // Map de dédoublonnage : clé = "reference::varianteNormalisée"
+  const seen = new Map()
+
   const parts = content.split('),(')
-
   for (let part of parts) {
     part = part.replace(/^\(/, '').replace(/\)$/, '')
-    const segments = part.split(';').map((s) => s.replace(/^"|"$/g, ''))
+    const segments = part.split(';').map((s) => s.replace(/^"|"$/g, '').trim())
 
-    if (segments.length >= 2) {
-      items.push({
-        reference: segments[0],
-        quantity: parseInt(segments[1]) || 1,
-        variant: segments[2] || null,
-      })
+    if (segments.length < 2) continue
+
+    const reference = segments[0]
+    if (!reference) continue
+
+    const quantity = parseInt(segments[1], 10)
+    // Ignorer les quantités nulles, négatives ou non-numériques
+    if (!Number.isFinite(quantity) || quantity <= 0) continue
+
+    // Normaliser la variante : trim + null si vide (insensible à la casse pour la clé)
+    const rawVariant = segments.length >= 3 ? segments[2] : ''
+    const variant = rawVariant || null
+    const variantKey = (rawVariant || '').toLowerCase()
+
+    const key = `${reference}::${variantKey}`
+
+    if (seen.has(key)) {
+      // Fusionner : additionner les quantités du même (produit, variante)
+      seen.get(key).quantity += quantity
+    } else {
+      seen.set(key, { reference, quantity, variant })
     }
   }
 
-  return items
+  return Array.from(seen.values())
 }
 
 /**
@@ -129,11 +186,7 @@ export function parseFichier1(csvContent) {
 
     const product = {}
     headers.forEach((header, idx) => {
-      let value = values[idx] || ''
-      if (header === 'prix_ttc' || header === 'prix_achat') {
-        value = value.replace(',', '.')
-      }
-      product[header] = value
+      product[header] = values[idx] ?? ''
     })
 
     if (product.reference && product.nom) {
@@ -141,10 +194,10 @@ export function parseFichier1(csvContent) {
         date_availability_produit: product.date_availability_produit,
         nom:        product.nom,
         reference:  product.reference,
-        prix_ttc:   parseFloat(product.prix_ttc) || 0,
+        prix_ttc:   parsePrice(product.prix_ttc),
         taxe:       product.taxe,
         categorie:  product.categorie,
-        prix_achat: product.prix_achat ? parseFloat(product.prix_achat) : 0,
+        prix_achat: parsePrice(product.prix_achat),
       })
     }
   }
@@ -173,21 +226,18 @@ export function parseFichier2(csvContent) {
 
     const variant = {}
     headers.forEach((header, idx) => {
-      let value = values[idx] || ''
-      if (header === 'prix_vente_ttc') {
-        value = value.replace(',', '.')
-      }
-      variant[header] = value
+      variant[header] = values[idx] ?? ''
     })
 
     // Le header CSV attendu est `specificité` (avec accent) ; après lowercase
     // la clé reste accentuée, donc on y accède en bracket notation.
+    const rawPrix = variant.prix_vente_ttc
     variants.push({
       reference:      variant.reference,
       specificite:    variant['specificité'] || null,
       karazany:       variant.karazany || null,
-      stock_initial:  parseInt(variant.stock_initial) || 0,
-      prix_vente_ttc: variant.prix_vente_ttc ? parseFloat(variant.prix_vente_ttc) : null,
+      stock_initial:  parseInt(variant.stock_initial, 10) || 0,
+      prix_vente_ttc: rawPrix ? parsePrice(rawPrix) : null,
     })
   }
 

@@ -5,6 +5,7 @@ import { getShopContext } from './contextService'
 import { getStockAvailable } from './stockService'
 import { computePriceHt, computePriceTtc, getTaxRateForGroup } from './taxService'
 import { getCombinationById, getFrontProductById } from './products'
+import { upsertCart } from './cartService'
 
 const escapeXml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -65,6 +66,8 @@ const parseOrders = (xmlText) => {
     dateAdd: readText(order.date_add),
     dateUpd: readText(order.date_upd),
     cartId: readText(order.id_cart),
+    addressId: readText(order.id_address_delivery),
+    customerId: readText(order.id_customer),
   }))
 }
 
@@ -588,7 +591,207 @@ const placeOrder = async ({ cartId, customer, addressId, items }) => {
     }
   }
 
+  // Commande en état "Paiement accepté" : aucun mouvement de stock à enregistrer ici.
+  // Les mouvements sortie sont créés uniquement lors du passage à "Livré"
+  // (dans duplicateOrder ou manuellement en BO).
+
   return orderId
+}
+
+// Retourne les lignes de commande enrichies avec le stock courant et le prix actuel.
+// Utilisé par la page de confirmation de duplication.
+const getOrderItemWithStock = async (orderId) => {
+  const [details, context] = await Promise.all([
+    getOrderDetails(orderId),
+    getShopContext(),
+  ])
+
+  const items = await Promise.all(details.map(async (detail) => {
+    let productExists = false
+    let stockQty = 0
+    let currentPrice = Number(detail.price || 0)
+    let taxRate = 0
+
+    try {
+      const product = await getFrontProductById(detail.productId)
+      if (product) {
+        productExists = true
+        taxRate = await getTaxRateForGroup(product.taxRulesGroupId)
+        let basePrice = Number(product.price || 0)
+
+        if (detail.combinationId && String(detail.combinationId) !== '0') {
+          const combo = await getCombinationById(detail.combinationId)
+          basePrice += Number(combo?.price || 0)
+        }
+
+        currentPrice = computePriceTtc(basePrice, taxRate)
+
+        const stock = await getStockAvailable({
+          productId: detail.productId,
+          combinationId: detail.combinationId || 0,
+          shopId: context.shopId,
+        })
+        stockQty = stock?.quantity ?? 0
+      }
+    } catch {
+      productExists = false
+    }
+
+    return { ...detail, currentPrice, taxRate, productExists, stockQty }
+  }))
+
+  return items
+}
+
+// Cache de la raison de mouvement sortie (sign=-1) pour éviter de la refetcher.
+let _stockOutReasonId = null
+
+const getStockOutReasonId = async () => {
+  if (_stockOutReasonId !== null) return _stockOutReasonId
+  try {
+    const client = getClient()
+    const response = await client.get('/stock_movement_reasons?display=full')
+    const json = xmlToJson(response.data)
+    const root = json.prestashop || {}
+    const reasonsRoot = root.stock_movement_reasons || json.stock_movement_reasons || {}
+    const nodes = asArray(reasonsRoot.stock_movement_reason)
+    const outNode = nodes.find((n) => readText(n.sign) === '-1')
+    _stockOutReasonId = outNode
+      ? (readText(outNode.id) || readAttr(outNode, 'id') || '2')
+      : '2'
+  } catch {
+    _stockOutReasonId = '2'
+  }
+  return _stockOutReasonId
+}
+
+const buildStockMovementXml = ({ stockId, reasonId, quantity, orderId }) => {
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  const orderLine = orderId ? `\n    <id_order>${escapeXml(String(orderId))}</id_order>` : ''
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<prestashop>
+  <stock_movement>
+    <id_stock>${escapeXml(String(stockId))}</id_stock>
+    <id_stock_mvt_reason>${escapeXml(String(reasonId))}</id_stock_mvt_reason>
+    <id_employee>0</id_employee>
+    <employee_firstname></employee_firstname>
+    <employee_lastname></employee_lastname>${orderLine}
+    <physical_quantity>${escapeXml(String(Math.abs(quantity)))}</physical_quantity>
+    <sign>-1</sign>
+    <date_add>${escapeXml(now)}</date_add>
+    <price_te>0.000000</price_te>
+    <last_wa>0.000000</last_wa>
+    <current_wa>0.000000</current_wa>
+  </stock_movement>
+</prestashop>`
+}
+
+// Enregistre les mouvements de stock sortie (ps_stock_mvt) pour chaque produit d'une commande.
+// BLOQUANT : toute erreur (stock introuvable, WS inaccessible, 4xx/5xx) est propagée.
+// PS décrémente le stock_available via ses hooks mais n'écrit pas toujours ps_stock_mvt via le WS.
+const recordItemStockMovements = async (items, orderId, shopId) => {
+  const reasonId = await getStockOutReasonId()
+  const client = getClient()
+
+  for (const item of items) {
+    const stock = await getStockAvailable({
+      productId: item.productId,
+      combinationId: item.combinationId || 0,
+      shopId,
+    })
+
+    if (!stock?.id) {
+      throw new Error(
+        `Mouvement de stock impossible : stock_available introuvable pour le produit ${item.productId}` +
+        (item.combinationId && String(item.combinationId) !== '0' ? ` / déclinaison ${item.combinationId}` : '') +
+        '. Vérifiez les permissions de la clé WS sur stock_availables et stock_movements.'
+      )
+    }
+
+    const mvtXml = buildStockMovementXml({
+      stockId: stock.id,
+      reasonId,
+      quantity: item.quantity,
+      orderId,
+    })
+
+    await client.post('/stock_movements', mvtXml)
+  }
+}
+
+// Crée une nouvelle commande en dupliquant une commande existante.
+// Workflow : placeOrder (paidStateId COD, pas de décrémentation) →
+//   order_history deliveredStateId (PS décrémente le stock physique via actionOrderStatusUpdate) →
+//   POST /stock_movements pour chaque produit (PS ne crée pas le ps_stock_mvt via WS, on le force).
+const duplicateOrder = async ({ orderId, multiplier = 1, customer, addressId }) => {
+  const mul = Math.max(1, Math.min(999, Number(multiplier) || 1))
+
+  const [originalOrder, details, context] = await Promise.all([
+    getOrderById(orderId),
+    getOrderDetails(orderId),
+    getShopContext(),
+  ])
+
+  if (!originalOrder) throw new Error('Commande introuvable.')
+  if (!details.length) throw new Error('Aucun produit dans la commande originale.')
+
+  const items = await Promise.all(details.map(async (detail) => {
+    const product = await getFrontProductById(detail.productId)
+    if (!product) throw new Error(`Produit "${detail.name}" introuvable.`)
+
+    const taxRate = await getTaxRateForGroup(product.taxRulesGroupId)
+    let basePrice = Number(product.price || 0)
+
+    if (detail.combinationId && String(detail.combinationId) !== '0') {
+      const combo = await getCombinationById(detail.combinationId)
+      basePrice += Number(combo?.price || 0)
+    }
+
+    return {
+      productId: detail.productId,
+      combinationId: detail.combinationId || 0,
+      name: detail.name,
+      reference: detail.reference || '',
+      quantity: detail.quantity * mul,
+      price: computePriceTtc(basePrice, taxRate),
+      taxRate,
+    }
+  }))
+
+  const effectiveAddressId = addressId || originalOrder.addressId || 0
+
+  const { id: cartId } = await upsertCart({
+    customerId: customer.id,
+    addressId: effectiveAddressId,
+    items,
+  })
+
+  if (!cartId) throw new Error('Impossible de créer le panier.')
+
+  // Crée la commande avec le workflow normal (validation stock incluse).
+  // Pas de mouvement de stock ici : la règle métier est que les mouvements sortie
+  // sont enregistrés uniquement au passage à "Livré", pas au "Paiement accepté".
+  const newOrderId = await placeOrder({
+    cartId,
+    customer,
+    addressId: effectiveAddressId,
+    items,
+  })
+
+  // Passage bloquant à "Livré" : PS décrémente stock_available.quantity via actionOrderStatusUpdate.
+  if (!context.deliveredStateId) {
+    throw new Error('État "Livré" introuvable. Configurez VITE_PRESTASHOP_DELIVERED_STATE_ID.')
+  }
+  const client = getClient()
+  await client.post('/order_histories', buildOrderHistoryXml({
+    payload: { orderId: newOrderId, stateId: context.deliveredStateId },
+  }))
+
+  // Enregistrement bloquant des mouvements de stock sortie (ps_stock_mvt).
+  // Doit suivre le passage à "Livré" : c'est à cet instant que le stock est physiquement sorti.
+  await recordItemStockMovements(items, newOrderId, context.shopId)
+
+  return newOrderId
 }
 
 export {
@@ -599,5 +802,7 @@ export {
   getOrderDetails,
   getOrderHistories,
   getOrderStateMap,
+  getOrderItemWithStock,
+  duplicateOrder,
   placeOrder,
 }

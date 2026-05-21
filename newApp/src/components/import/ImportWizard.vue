@@ -43,6 +43,13 @@
           <p>Sélectionnez les 3 fichiers CSV et l'archive ZIP des images.</p>
         </div>
 
+        <div class="import-option">
+          <label for="import-option-label">
+            Importer l'image ou non
+            <input type="checkbox" v-model="importImages" class="import-option-checkbox">
+          </label>
+        </div>
+
         <div class="uploads-grid">
           <FileUploader
             title="Fichier 1 - Produits"
@@ -60,6 +67,7 @@
             @file-selected="files.fichier3 = $event"
           />
           <FileUploader
+            v-if="importImages"
             title="Images ZIP"
             accept=".zip"
             @file-selected="files.images = $event"
@@ -215,6 +223,8 @@ const files = reactive({
   images: null
 })
 
+const importImages = ref(true)
+
 // Cache des contenus CSV lus une seule fois (réutilisés en preview ET en import).
 const csvContents = reactive({
   fichier1: null,
@@ -235,7 +245,7 @@ const steps = ref([
 ])
 
 const allFilesSelected = computed(() => {
-  return files.fichier1 && files.fichier2 && files.fichier3 && files.images
+  return files.fichier1 && files.fichier2 && files.fichier3 && (!importImages.value || files.images)
 })
 
 const readFileAsText = (file) =>
@@ -294,7 +304,7 @@ const runImport = async () => {
 
   try {
     const results = await runTransactionalImport(
-      { csvProduits, csvDeclinaisons, csvCommandes, zipImages: files.images },
+      { csvProduits, csvDeclinaisons, csvCommandes, zipImages: files.images , importImages: importImages.value },
       onProgress,
       logImport
     )
@@ -325,6 +335,7 @@ const goBack = () => {
 
 const resetImport = () => {
   importStore.resetState()
+  importImages.value = true
   files.fichier1 = null
   files.fichier2 = null
   files.fichier3 = null
@@ -481,6 +492,72 @@ const resetImport = () => {
   font-size: 13.5px;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* ── Import option ───────────────────────────────── */
+.import-option {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.import-option label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.import-option-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.import-option-checkbox:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.import-option-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.import-option-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-option-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.import-option-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ── Upload grid ──────────────────────────────────── */
