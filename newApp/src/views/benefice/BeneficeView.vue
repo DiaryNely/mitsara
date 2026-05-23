@@ -14,6 +14,20 @@ const stockByCategory = ref({})
 const stockLoading = ref(false)
 const stockError = ref('')
 
+const computeBeneficeTtc = (data) => {
+  const salesTtc = Number(data?.salesTtc || 0)
+  return salesTtc - computePurchaseTtc(data)
+}
+
+const computePurchaseTtc = (data) => {
+  const purchasesHt = Number(data?.realPurchasesHt || 0)
+  const salesHt = Number(data?.salesHt || 0)
+  const salesTtc = Number(data?.salesTtc || 0)
+  if (!salesHt) return purchasesHt
+  const ratio = salesTtc / salesHt
+  return Number.isFinite(ratio) && ratio > 0 ? purchasesHt * ratio : purchasesHt
+}
+
 const formatQty = (value) => {
   const num = Number(value)
   return Number.isFinite(num) ? Math.round(num) : 0
@@ -97,10 +111,6 @@ onMounted(() => {
             <span class="benefice-view__stat-label">Coût achat (produits vendus)</span>
             <span class="benefice-view__stat-value">{{ formatCurrency(total.realPurchasesHt) }}</span>
           </div>
-          <div class="benefice-view__stat benefice-view__stat--highlight">
-            <span class="benefice-view__stat-label">Bénéfice réel total</span>
-            <span class="benefice-view__stat-value">{{ formatCurrency(total.realBenefice) }}</span>
-          </div>
         </section>
         <section class="benefice-view__category-table" v-if="total.byCategoryDetailed">
           <h2>Bénéfice par catégorie</h2>
@@ -111,8 +121,10 @@ onMounted(() => {
                 <th>Vente HT</th>
                 <th>Vente TTC</th>
                 <th>Achat HT</th>
+                <th>Achat TTC</th>
                 <th>Bénéfice HT</th>
-                <th>Bénéfice réel</th>
+                <th>Bénéfice TTC</th>
+                <th>Bénéfice total</th>
               </tr>
             </thead>
             <tbody>
@@ -120,9 +132,11 @@ onMounted(() => {
                 <td>{{ getCategoryName(cat) }}</td>
                 <td>{{ formatCurrency(data.salesHt) }}</td>
                 <td>{{ formatCurrency(data.salesTtc) }}</td>
-                <td>{{ formatCurrency(data.purchasesHt) }}</td>
-                <td>{{ formatCurrency(data.beneficeHt) }}</td>
+                <td>{{ formatCurrency(data.realPurchasesHt ?? 0) }}</td>
+                <td>{{ formatCurrency(computePurchaseTtc(data)) }}</td>
                 <td>{{ formatCurrency(data.realBenefice ?? 0) }}</td>
+                <td>{{ formatCurrency(computeBeneficeTtc(data)) }}</td>
+                <td>{{ formatCurrency(data.beneficeHt) }}</td>
               </tr>
             </tbody>
           </table>
