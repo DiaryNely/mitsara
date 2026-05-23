@@ -643,11 +643,25 @@ const getOrderItemWithStock = async (orderId) => {
   return items
 }
 
-// Cache de la raison de mouvement sortie (sign=-1) pour éviter de la refetcher.
-let _stockOutReasonId = null
+// Cache des raisons de mouvements stock pour éviter des refetchs répétés.
+const stockReasonIdCache = new Map()
 
-const getStockOutReasonId = async () => {
-  if (_stockOutReasonId !== null) return _stockOutReasonId
+const readReasonName = (node) => {
+  const langs = asArray(node?.name?.language)
+  const nameNode = langs.find((lang) => readText(lang)) || langs[0] || ''
+  return readText(nameNode) || readText(node?.name) || ''
+}
+
+const normalizeReasonLabel = (value) => {
+  return normalizeForMatch(value).replace(/\s+/g, ' ').trim()
+}
+
+const getStockOutReasonId = async (options = {}) => {
+  const preferredLabel = options?.preferredLabel ? normalizeReasonLabel(options.preferredLabel) : ''
+  const cacheKey = preferredLabel || 'sign:-1'
+
+  if (stockReasonIdCache.has(cacheKey)) return stockReasonIdCache.get(cacheKey)
+
   try {
     const client = getClient()
     const response = await client.get('/stock_movement_reasons?display=full')
@@ -655,14 +669,24 @@ const getStockOutReasonId = async () => {
     const root = json.prestashop || {}
     const reasonsRoot = root.stock_movement_reasons || json.stock_movement_reasons || {}
     const nodes = asArray(reasonsRoot.stock_movement_reason)
+
+    if (preferredLabel) {
+      const preferredNode = nodes.find((n) => normalizeReasonLabel(readReasonName(n)) === preferredLabel)
+      if (preferredNode) {
+        const id = readText(preferredNode.id) || readAttr(preferredNode, 'id') || '2'
+        stockReasonIdCache.set(cacheKey, id)
+        return id
+      }
+    }
+
     const outNode = nodes.find((n) => readText(n.sign) === '-1')
-    _stockOutReasonId = outNode
-      ? (readText(outNode.id) || readAttr(outNode, 'id') || '2')
-      : '2'
+    const id = outNode ? (readText(outNode.id) || readAttr(outNode, 'id') || '2') : '2'
+    stockReasonIdCache.set(cacheKey, id)
+    return id
   } catch {
-    _stockOutReasonId = '2'
+    stockReasonIdCache.set(cacheKey, '2')
+    return '2'
   }
-  return _stockOutReasonId
 }
 
 const buildStockMovementXml = ({ stockId, reasonId, quantity, orderId }) => {
@@ -689,8 +713,8 @@ const buildStockMovementXml = ({ stockId, reasonId, quantity, orderId }) => {
 // Enregistre les mouvements de stock sortie (ps_stock_mvt) pour chaque produit d'une commande.
 // BLOQUANT : toute erreur (stock introuvable, WS inaccessible, 4xx/5xx) est propagée.
 // PS décrémente le stock_available via ses hooks mais n'écrit pas toujours ps_stock_mvt via le WS.
-const recordItemStockMovements = async (items, orderId, shopId) => {
-  const reasonId = await getStockOutReasonId()
+const recordItemStockMovements = async (items, orderId, shopId, options = {}) => {
+  const reasonId = await getStockOutReasonId({ preferredLabel: options.preferredLabel })
   const client = getClient()
 
   for (const item of items) {
@@ -789,7 +813,9 @@ const duplicateOrder = async ({ orderId, multiplier = 1, customer, addressId }) 
 
   // Enregistrement bloquant des mouvements de stock sortie (ps_stock_mvt).
   // Doit suivre le passage à "Livré" : c'est à cet instant que le stock est physiquement sorti.
-  await recordItemStockMovements(items, newOrderId, context.shopId)
+  await recordItemStockMovements(items, newOrderId, context.shopId, {
+    preferredLabel: 'Commande client',
+  })
 
   return newOrderId
 }

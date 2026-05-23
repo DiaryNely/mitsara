@@ -1290,28 +1290,7 @@ async function stageOrders(orders, txCtx, onProgress, onLog) {
                 await fixOrderHistoryDate(orderId, normalizedDate, onLog)
             }
 
-            // Enregistrement BLOQUANT des mouvements de stock sortie (ps_stock_mvt).
-            // updateOrderStateWithStockMovement décrémente stock_available mais n'écrit
-            // pas toujours ps_stock_mvt via le WS — on le force pour chaque ligne.
-            for (const detail of orderDetails) {
-                const mvtId = await recordStockMovementForProduct({
-                    productId: detail.productId,
-                    attributeId: detail.productAttributeId || 0,
-                    physical_quantity: detail.quantity,
-                    sign: -1,
-                    date_add: normalizedDate,
-                })
-                if (mvtId === null) {
-                    throw new Error(
-                        `Mouvement de stock sortie impossible pour "${detail.productName}" ` +
-                        `(produit ${detail.productId}). ` +
-                        'Vérifiez les permissions WS sur stock_availables et stock_movements.'
-                    )
-                }
-                if (typeof onLog === 'function') {
-                    onLog(`  ✅ Mouvement stock sortie: ${detail.productName} ×${detail.quantity}`)
-                }
-            }
+            // Mouvements de stock : laisser PrestaShop gérer pour éviter les doublons.
         }
 
         txCtx.orders.push(orderId)
