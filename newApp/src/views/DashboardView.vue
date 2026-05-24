@@ -290,569 +290,450 @@ onMounted(async () => {
 
 <template>
   <div class="dashboard animate-fade-in">
-
-    <!-- ── En-tête ── -->
-    <div class="page-header">
-      <div class="page-title-group">
-        <h1>Tableau de bord</h1>
-        <p class="page-desc">Suivi des commandes via les webservices PrestaShop.</p>
+    <!-- Header Repensé -->
+    <header class="ds-header">
+      <div class="ds-header-content">
+        <h1 class="ds-title">Bonjour, voici l'état des ventes 👋</h1>
+        <p class="ds-subtitle">Connecté aux webservices PrestaShop. Données en temps réel.</p>
       </div>
-      <div class="page-actions">
-        <button class="btn btn--outline" type="button" @click="refreshAll" :disabled="dailyLoading || totalLoading">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" :class="{ spinning: dailyLoading || totalLoading }">
-            <path d="M12 7A5 5 0 113.4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M3.5 1.5l.2 2.8L6.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          {{ dailyLoading || totalLoading ? 'Actualisation...' : 'Actualiser' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- ── Bande KPI ── -->
-    <div class="kpi-strip animate-fade-in-up" style="animation-delay: 80ms;">
-      <!-- Commandes du jour -->
-      <div class="kpi-block kpi-block--orders">
-        <div class="kpi-icon">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect x="2.5" y="2.5" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M5 7h8M5 10h8M5 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="kpi-body">
-          <span class="kpi-label">Commandes du jour</span>
-          <span v-if="dailyLoading" class="kpi-value skeleton" style="width:52px;height:30px;"></span>
-          <span v-else class="kpi-value">{{ dailyStats.count }}</span>
-        </div>
-      </div>
-
-      <div class="kpi-sep"></div>
-
-      <!-- CA du jour -->
-      <div class="kpi-block kpi-block--revenue">
-        <div class="kpi-icon">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M9 2v14M12.5 5.5C12.5 4.12 10.99 3 9 3S5.5 4.12 5.5 5.5 7.01 8 9 8s3.5 1.12 3.5 2.5S10.99 13 9 13s-3.5-1.12-3.5-2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="kpi-body">
-          <span class="kpi-label">CA du jour</span>
-          <span v-if="dailyLoading" class="kpi-value skeleton" style="width:100px;height:30px;"></span>
-          <span v-else class="kpi-value kpi-value--money">{{ formatCurrency(dailyStats.total) }}</span>
-        </div>
-      </div>
-
-      <div class="kpi-sep"></div>
-
-      <!-- Total commandes -->
-      <div class="kpi-block kpi-block--total">
-        <div class="kpi-icon">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M9 2L2 7v9h14V7L9 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M6.5 16v-5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="kpi-body">
-          <span class="kpi-label">Total commandes</span>
-          <span v-if="totalLoading" class="kpi-value skeleton" style="width:52px;height:30px;"></span>
-          <span v-else class="kpi-value">{{ totalStats.count }}</span>
-        </div>
-      </div>
-
-      <div class="kpi-sep"></div>
-
-      <!-- CA global -->
-      <div class="kpi-block kpi-block--global">
-        <div class="kpi-icon">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M2 12.5l3.5-4 2.5 2.5 3.5-4.5L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="kpi-body">
-          <span class="kpi-label">CA global</span>
-          <span v-if="totalLoading" class="kpi-value skeleton" style="width:100px;height:30px;"></span>
-          <span v-else class="kpi-value kpi-value--money">{{ formatCurrency(totalStats.total) }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Erreurs globales -->
-    <p v-if="dailyError" class="inline-error">{{ dailyError }}</p>
-    <p v-if="totalError" class="inline-error">{{ totalError }}</p>
-
-    <!-- ── Section détail ── -->
-    <div class="period-section animate-fade-in-up" style="animation-delay: 160ms;">
-
-      <!-- Toolbar période -->
-      <div class="period-toolbar">
-        <div class="period-info">
-          <h2>Détail journalier</h2>
-          <p class="period-desc">Lignes produits des commandes pour la date sélectionnée.</p>
-        </div>
-        <div class="period-controls">
-          <input
-            class="date-input"
-            type="date"
-            v-model="dailyDate"
-            @change="handleDailyDateChange"
-            :disabled="dailyLoading"
-          />
-          <button class="btn btn--ghost" type="button" @click="setToday" :disabled="dailyLoading">
-            Aujourd'hui
-          </button>
-        </div>
-      </div>
-
-      <!-- Barre de résumé -->
-      <div class="detail-summary-bar">
-        <span class="dsb-count">{{ detailSummary.count }} ligne{{ detailSummary.count !== 1 ? 's' : '' }}</span>
-      </div>
-
-      <p v-if="dailyDetailError" class="inline-error">{{ dailyDetailError }}</p>
-
-      <!-- Skeleton -->
-      <div v-if="dailyDetailLoading" class="detail-skeleton">
-        <div class="skeleton" style="width: 100%; height: 14px;"></div>
-        <div class="skeleton" style="width: 91%; height: 14px;"></div>
-        <div class="skeleton" style="width: 85%; height: 14px;"></div>
-        <div class="skeleton" style="width: 95%; height: 14px;"></div>
-      </div>
-
-      <!-- Vide -->
-      <div v-else-if="!dailyDetailRows.length" class="detail-empty">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity="0.3">
-          <rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="2"/>
-          <path d="M10 12h12M10 16h12M10 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <button class="ds-btn ds-btn-refresh" @click="refreshAll" :disabled="dailyLoading || totalLoading">
+        <svg :class="['ds-icon', { 'is-spinning': dailyLoading || totalLoading }]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-        <p>Aucune ligne de commande pour cette date.</p>
+        <span>Rafraîchir</span>
+      </button>
+    </header>
+
+    <!-- Cartes KPI sous forme de Grid (plus aéré qu'une Strip) -->
+    <div class="ds-kpi-grid">
+      <!-- KPI 1 -->
+      <div class="ds-card kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title">Commandes Aujourd'hui</span>
+          <div class="ds-badge ds-badge-indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="ds-icon-sm">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-body">
+          <div v-if="dailyLoading" class="skeleton ds-skeleton-value"></div>
+          <div v-else class="kpi-val">{{ dailyStats.count }}</div>
+        </div>
       </div>
 
-      <!-- Table -->
-      <div v-else class="detail-table-wrapper">
-        <table class="detail-table">
-          <thead>
-            <tr>
-              <th>Commande</th>
-              <th>Produit</th>
-              <th>Categorie</th>
-              <th>Quantite</th>
-              <th>Prix TTC</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, idx) in dailyDetailRows" :key="`${row.orderId}-${row.productId}-${idx}`">
-              <td><span class="order-ref">#{{ row.orderReference || row.orderId }}</span></td>
-              <td class="cell-product">{{ row.productName || 'Produit' }}</td>
-              <td>{{ getCategoryName(row.categoryId) }}</td>
-              <td><span class="qty-pill">{{ row.quantity }}</span></td>
-              <td>{{ formatCurrency(row.unitPriceTtc) }}</td>
-              <td class="cell-total">{{ formatCurrency(row.lineTotalTtc) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- KPI 2 -->
+      <div class="ds-card kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title">Chiffre d'Affaires Jour</span>
+          <div class="ds-badge ds-badge-emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="ds-icon-sm">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-body">
+          <div v-if="dailyLoading" class="skeleton ds-skeleton-value"></div>
+          <div v-else class="kpi-val kpi-green">{{ formatCurrency(dailyStats.total) }}</div>
+        </div>
+      </div>
+
+      <!-- KPI 3 -->
+      <div class="ds-card kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title">Total Commandes</span>
+          <div class="ds-badge ds-badge-amber">
+            <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-body">
+          <div v-if="totalLoading" class="skeleton ds-skeleton-value"></div>
+          <div v-else class="kpi-val">{{ totalStats.count }}</div>
+        </div>
+      </div>
+
+      <!-- KPI 4 -->
+      <div class="ds-card kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title">CA Global</span>
+          <div class="ds-badge ds-badge-blue">
+            <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-body">
+          <div v-if="totalLoading" class="skeleton ds-skeleton-value"></div>
+          <div v-else class="kpi-val kpi-blue">{{ formatCurrency(totalStats.total) }}</div>
+        </div>
       </div>
     </div>
 
+    <!-- Layout principal : Détails -->
+    <div class="ds-main-grid">
+      <div class="ds-card detail-card">
+        
+        <div class="detail-card-header">
+          <div class="header-left">
+            <h2 class="ds-section-title">Analyse Journalière</h2>
+            <span class="ds-pill">{{ detailSummary.count }} ligne(s) produit</span>
+          </div>
+          <div class="header-right">
+            <div class="ds-date-picker-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="calendar-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <input type="date" class="ds-input" v-model="dailyDate" @change="handleDailyDateChange" :disabled="dailyLoading" />
+            </div>
+            <button class="ds-btn ds-btn-outline" @click="setToday" :disabled="dailyLoading">Aujourd'hui</button>
+          </div>
+        </div>
+
+        <div class="detail-card-body">
+          <p v-if="dailyDetailError" class="ds-alert ds-alert-error">{{ dailyDetailError }}</p>
+
+          <!-- Skeleton Loader pour le tableau -->
+          <div v-if="dailyDetailLoading" class="ds-table-skeleton">
+            <div class="skeleton-row" v-for="i in 5" :key="i"></div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="!dailyDetailRows.length" class="ds-empty-state">
+            <div class="empty-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h3>Aucune donnée trouvée</h3>
+            <p>Il n'y a pas de ligne de commande expédiée/payée pour cette journée.</p>
+          </div>
+
+          <!-- Tableau Modernisé -->
+          <div v-else class="ds-table-container">
+            <table class="ds-table">
+              <thead>
+                <tr>
+                  <th>Ref/Cmd</th>
+                  <th>Produit</th>
+                  <th>Catégorie</th>
+                  <th>Qté</th>
+                  <th class="text-right">Prix U. (TTC)</th>
+                  <th class="text-right">Total (TTC)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, idx) in dailyDetailRows" :key="`${row.orderId}-${row.productId}-${idx}`" class="ds-table-row">
+                  <td>
+                    <span class="ds-txt-bold">#{{ row.orderReference || row.orderId }}</span>
+                  </td>
+                  <td class="ds-txt-medium">{{ row.productName || 'Produit' }}</td>
+                  <td>
+                    <span class="ds-category-tag">{{ getCategoryName(row.categoryId) }}</span>
+                  </td>
+                  <td>
+                    <span class="ds-qty-badge">{{ row.quantity }}</span>
+                  </td>
+                  <td class="text-right ds-txt-muted">{{ formatCurrency(row.unitPriceTtc) }}</td>
+                  <td class="text-right ds-txt-bold ds-txt-dark">{{ formatCurrency(row.lineTotalTtc) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* ── Dashboard shell ─────────────────────────────────── */
+/* ── Design System (DS) Dashboard ───────────────────── */
+
 .dashboard {
-  max-width: 1280px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-xl);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* ── En-tête ─────────────────────────────────────────── */
-.page-header {
+/* ── Header ─────────────────────────────────────────── */
+.ds-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  align-items: flex-start;
+  padding: var(--space-md) 0;
 }
 
-.page-title-group h1 {
-  margin-bottom: 4px;
+.ds-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--space-xs) 0;
+  letter-spacing: -0.02em;
 }
 
-.page-desc {
+.ds-subtitle {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0;
 }
 
-.page-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.btn {
+.ds-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 18px;
+  gap: var(--space-sm);
+  padding: 10px 16px;
   border-radius: var(--radius-md);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
   border: 1px solid transparent;
-}
-
-.btn--outline {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
-  box-shadow: var(--shadow-xs);
-}
-
-.btn--outline:hover:not(:disabled) {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.btn--ghost {
-  background: var(--bg);
-  border-color: var(--border);
-  color: var(--text-muted);
-}
-
-.btn--ghost:hover:not(:disabled) {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.spinning {
-  animation: spin 0.9s linear infinite;
-}
-
-/* ── Bande KPI ───────────────────────────────────────── */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
-  align-items: stretch;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.kpi-block {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px 24px;
+  cursor: pointer;
   transition: background var(--transition-fast);
 }
 
-.kpi-block:hover {
-  background: var(--bg);
-}
-
-.kpi-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.kpi-block--orders .kpi-icon {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-}
-
-.kpi-block--revenue .kpi-icon {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.kpi-block--total .kpi-icon {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-
-.kpi-block--global .kpi-icon {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.kpi-body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.kpi-label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.kpi-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-.kpi-value--money {
-  font-size: 20px;
-}
-
-.kpi-sep {
-  width: 1px;
-  background: var(--border-light);
-  margin: 12px 0;
-}
-
-/* ── Section période ─────────────────────────────────── */
-.period-section {
+.ds-btn-refresh {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.period-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.period-info h2 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 3px;
-}
-
-.period-desc {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.period-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.date-input {
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg);
   color: var(--text);
-  font-size: 13px;
-  min-width: 150px;
-  transition: border-color var(--transition-fast);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
-.date-input:focus {
-  outline: none;
-  border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-light);
-}
-
-/* ── Barre résumé ─────────────────────────────────────── */
-.detail-summary-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 24px;
+.ds-btn-refresh:hover:not(:disabled) {
   background: var(--bg);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.dsb-count {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.dsb-total {
-  font-size: 13.5px;
-  font-weight: 700;
+  border-color: var(--accent);
   color: var(--accent);
 }
 
-/* ── États detail ─────────────────────────────────────── */
-.detail-skeleton {
-  display: grid;
-  gap: 10px;
-  padding: 20px 24px;
-}
-
-.detail-empty {
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-muted);
-  font-size: 13.5px;
-}
-
-.detail-empty p {
-  margin: 0;
-}
-
-/* ── Table ────────────────────────────────────────────── */
-.detail-table-wrapper {
-  overflow-x: auto;
-}
-
-.detail-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.detail-table thead {
-  background: var(--bg);
-  position: sticky;
-  top: 0;
-}
-
-.detail-table th {
-  padding: 10px 16px;
-  text-align: left;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.detail-table td {
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border-light);
+.ds-btn-outline {
+  background: transparent;
+  border-color: var(--border);
   color: var(--text-secondary);
 }
 
-.detail-table tbody tr:last-child td {
-  border-bottom: none;
+.ds-icon {
+  width: 18px;
+  height: 18px;
 }
 
-.detail-table tbody tr:hover td {
-  background: var(--bg);
+.ds-icon-sm {
+  width: 16px;
+  height: 16px;
 }
 
-.order-ref {
-  font-weight: 600;
-  color: var(--accent);
-  font-family: 'SF Mono', monospace;
-  font-size: 12px;
+.is-spinning {
+  animation: spin 1s linear infinite;
 }
 
-.cell-product {
-  font-weight: 500;
-  color: var(--text);
-  max-width: 200px;
-  white-space: nowrap;
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* ── KPI Grid ───────────────────────────────────────── */
+.ds-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-lg);
+}
+
+.ds-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
-  text-overflow: ellipsis;
+  transition: box-shadow var(--transition-fast);
 }
 
-.cell-total {
-  font-weight: 700;
-  color: var(--text);
+.ds-card:hover { box-shadow: var(--shadow-md); }
+
+.kpi-card { padding: var(--space-lg); }
+
+.kpi-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
 }
 
-.qty-pill {
-  display: inline-flex;
+.kpi-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.ds-badge {
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  padding: 2px 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+}
+.ds-badge-indigo { background: var(--accent-light); color: var(--accent); }
+.ds-badge-emerald { background: var(--success-light); color: var(--success); }
+.ds-badge-amber { background: var(--warning-light); color: var(--warning); }
+.ds-badge-blue { background: var(--info-light); color: var(--info); }
+
+.kpi-val { font-size: 28px; font-weight: 800; color: var(--text); }
+.kpi-green { color: var(--success); }
+.kpi-blue { color: var(--info); }
+
+/* ── Détails & Data Table ───────────────────────────── */
+.ds-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+}
+
+.detail-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.header-left { display: flex; align-items: center; gap: var(--space-md); }
+
+.ds-section-title { font-size: 18px; font-weight: 700; margin: 0; }
+
+.ds-pill {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.header-right { display: flex; align-items: center; gap: var(--space-md); }
+.ds-date-picker-wrap { position: relative; display: flex; align-items: center; }
+
+.calendar-icon { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--text-muted); }
+
+.ds-input {
+  padding: 9px 12px 9px 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.ds-input:focus { outline: none; border-color: var(--accent); }
+
+/* Table */
+.ds-table-container { overflow-x: auto; }
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ds-table th {
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.ds-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ds-table-row:last-child td { border-bottom: none; }
+.ds-table-row:hover td { background: var(--surface-hover); }
+
+.text-right { text-align: right; }
+.ds-txt-bold { font-weight: 700; }
+.ds-txt-medium { font-weight: 500; }
+.ds-txt-muted { color: var(--text-muted); }
+.ds-txt-dark { color: var(--text); }
+
+.ds-category-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+}
+
+.ds-qty-badge {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  padding: 4px;
+  font-size: 13px;
+  font-weight: 700;
   background: var(--accent-light);
   color: var(--accent);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 6px;
 }
 
-/* ── Erreurs ──────────────────────────────────────────── */
-.inline-error {
-  font-size: 12.5px;
-  color: var(--danger);
-  padding: 10px 14px;
-  background: var(--danger-light);
+.ds-alert { margin: var(--space-lg); padding: var(--space-md); border-radius: var(--radius-md); font-weight: 500; }
+.ds-alert-error { background: var(--danger-light); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--space-xl) * 2);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-icon-wrap {
+  width: 64px;
+  height: 64px;
+  background: var(--bg);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+  color: var(--text-muted);
+}
+
+.empty-icon-wrap svg { width: 32px; height: 32px; }
+.ds-empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text); margin: 0 0 var(--space-xs) 0; }
+
+.skeleton-row {
+  height: 48px;
+  background: var(--bg);
   border-radius: var(--radius-md);
-  border-left: 3px solid var(--danger);
+  opacity: 0.7;
+  animation: pulse 1.5s infinite;
 }
 
-/* ── Responsive ──────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .kpi-strip {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .kpi-sep {
-    display: none;
-  }
-
-  .kpi-block--orders,
-  .kpi-block--total {
-    border-right: 1px solid var(--border-light);
-  }
-
-  .kpi-block--orders,
-  .kpi-block--revenue {
-    border-bottom: 1px solid var(--border-light);
-  }
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
-@media (max-width: 640px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .period-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .kpi-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .kpi-block--orders,
-  .kpi-block--total {
-    border-right: none;
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .kpi-block--global {
-    border-bottom: none;
-  }
+.animate-fade-in { animation: fadeIn var(--transition-base) forwards; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
