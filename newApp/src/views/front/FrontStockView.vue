@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { fetchCategories, reduceStockByCategory } from '../../services/frontoffice/stockService'
 
 /* ── Form state ──────────────────────────────────────── */
@@ -37,6 +37,24 @@ const validate = () => {
   }
   return true
 }
+
+const reportByProduct = computed(() => {
+  if (!report.value?.details) return []
+  const qty = report.value.quantity
+  const map = new Map()
+  for (const row of report.value.details) {
+    if (!map.has(row.productId)) {
+      map.set(row.productId, { productId: row.productId, name: row.name, before: 0, reduced: 0, after: 0, theorique: 0, lignes: 0 })
+    }
+    const entry = map.get(row.productId)
+    entry.before += row.before
+    entry.reduced += row.reduced
+    entry.after += row.after
+    entry.lignes += 1
+    entry.theorique += qty
+  }
+  return Array.from(map.values())
+})
 
 const handleSubmit = async () => {
   errorMessage.value = ''
@@ -257,6 +275,66 @@ const handleSubmit = async () => {
                   </td>
                 </tr>
               </tbody>
+            </table>
+          </div>
+        </section>
+      </Transition>
+
+      <!-- Tableau récapitulatif par produit -->
+      <Transition name="slide-up">
+        <section v-if="reportByProduct.length > 0" class="report-section">
+          <div class="report-header">
+            <div class="report-header-left">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6h16M4 10h16M4 14h10M4 18h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              Récapitulatif par produit
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th class="col-num">Stock avant</th>
+                  <th class="col-num">Théorique</th>
+                  <th class="col-num">Réel réduit</th>
+                  <th class="col-num">Stock après</th>
+                  <th class="col-status">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in reportByProduct"
+                  :key="row.productId"
+                  :class="{ 'row-zeroed': row.after === 0 && row.before > 0, 'row-empty': row.before === 0 }"
+                >
+                  <td class="td-name">{{ row.name || `Produit #${row.productId}` }}</td>
+                  <td class="col-num">{{ row.before }}</td>
+                  <td class="col-num td-theorique">{{ row.theorique }}</td>
+                  <td class="col-num td-reduced">
+                    <span v-if="row.reduced > 0">−{{ row.reduced }}</span>
+                    <span v-else class="muted">—</span>
+                  </td>
+                  <td class="col-num td-after" :class="{ 'td-zero': row.after === 0 }">{{ row.after }}</td>
+                  <td class="col-status">
+                    <span v-if="row.before === 0" class="badge badge-empty">Stock vide</span>
+                    <span v-else-if="row.after === 0" class="badge badge-zero">Remis à 0</span>
+                    <span v-else class="badge badge-ok">OK</span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td class="td-name total-label">Total</td>
+                  <td class="col-num total-val">{{ reportByProduct.reduce((s, r) => s + r.before, 0) }}</td>
+                  <td class="col-num total-val total-theorique">{{ reportByProduct.reduce((s, r) => s + r.theorique, 0) }}</td>
+                  <td class="col-num total-val total-reduced">{{ reportByProduct.reduce((s, r) => s + r.reduced, 0) }}</td>
+                  <td class="col-num total-val">{{ reportByProduct.reduce((s, r) => s + r.after, 0) }}</td>
+                  <td class="col-status"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </section>
@@ -662,6 +740,11 @@ const handleSubmit = async () => {
   white-space: nowrap;
 }
 
+.td-theorique {
+  font-weight: 600;
+  color: #64748b;
+}
+
 .td-reduced {
   font-weight: 700;
   color: #dc2626;
@@ -678,6 +761,33 @@ const handleSubmit = async () => {
 
 .muted {
   color: #cbd5e1;
+}
+
+/* ── Ligne total ─────────────────────────────────────── */
+.total-row td {
+  border-top: 2px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 14px 16px;
+}
+
+.total-label {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13.5px;
+}
+
+.total-val {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.total-theorique {
+  color: #64748b;
+}
+
+.total-reduced {
+  color: #dc2626;
 }
 
 /* ── Badges ──────────────────────────────────────────── */

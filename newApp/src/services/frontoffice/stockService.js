@@ -205,7 +205,7 @@ const reduceStockByCategory = async (categoryId, quantity) => {
     }
   }
 
-  return { totalTheorique, totalReallyReduced, productCount, details }
+  return { quantity, totalTheorique, totalReallyReduced, productCount, details }
 }
 
 export {
