@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { getProducts } from '../../api/products'
 import { getStockAvailable, getAllStockAvailables, getProductCombinations } from '../../api/stock'
@@ -215,766 +215,647 @@ async function handleSubmit() {
 }
 </script>
 
+
 <template>
-  <div class="stock-add-page animate-fade-in">
-
-    <!-- En-tête -->
-    <div class="page-header">
-      <div>
-        <h1>Ajout de Stock</h1>
-        <p class="page-desc">Sélectionnez un produit dans la liste, choisissez une déclinaison et ajustez le stock.</p>
+  <div class="master-detail-layout animate-fade-in">
+    
+    <!-- DASHBOARD HEADER -->
+    <header class="dashboard-topbar">
+      <div class="topbar-info">
+        <h1>Opérations de Stocks</h1>
+        <p>Aperçu listé avec panneau d'édition latéral pour les ajustements</p>
       </div>
-    </div>
 
-    <div class="layout">
+      <!-- Action bar intégrée -->
+      <div class="action-bar shadow-sm">
+        <div class="search-group">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            v-model="filterQuery" 
+            @input="onFilterInput" 
+            class="input plain-input" 
+            type="text" 
+            placeholder="Recherche (nom, référence)..." 
+          />
+        </div>
+        
+        <div class="divider"></div>
 
-      <!-- ── Colonne gauche : liste produits ──────────────────────────────── -->
-      <div class="list-col">
-        <div class="card list-card">
+        <select v-model="filterActive" @change="onFilterActiveChange" class="input plain-select">
+          <option value="">Status (Tous)</option>
+          <option value="1">Actifs</option>
+          <option value="0">Inactifs</option>
+        </select>
+        
+        <div class="divider"></div>
 
-          <!-- Filtres inline -->
-          <div class="list-filters">
-            <div class="search-wrap">
-              <input
-                v-model="filterQuery"
-                class="input search-input"
-                placeholder="Nom…"
-                @input="onFilterInput"
-              />
-              <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/>
-                <path d="M10.5 10.5l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <select v-model="filterActive" class="input select status-filter" @change="onFilterActiveChange">
-              <option value="">Tous</option>
-              <option value="1">Actifs</option>
-              <option value="0">Inactifs</option>
-            </select>
-            <button class="btn btn--icon" @click="loadProducts({ page: 1 })" :disabled="listLoading" title="Actualiser">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" :class="{ spinning: listLoading }">
-                <path d="M13 7.5A5.5 5.5 0 114 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M4 1.5l.2 3L7 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
+        <button @click="loadProducts({ page: 1 })" :disabled="listLoading" class="btn-icon" title="Rafraîchir les données">
+          <svg viewBox="0 0 24 24" fill="none" class="icon" :class="{'spin': listLoading}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
 
-          <!-- État chargement / erreur -->
-          <div v-if="listLoading && !products.length" class="list-loading">
-            <span class="spinner-dark"></span>
-            <span>Chargement…</span>
-          </div>
-          <p v-else-if="listError" class="text-error">{{ listError }}</p>
+    <!-- DATA TABLE CONTAINER -->
+    <main class="data-view-container">
+      
+      <div v-if="listLoading && !products.length" class="view-feedback">
+        <div class="spinner big"></div>
+        <p>Synchronisation des données...</p>
+      </div>
+      
+      <div v-else-if="listError" class="view-feedback error">
+        <p>{{ listError }}</p>
+      </div>
 
-          <!-- Liste -->
-          <ul v-else-if="products.length" class="product-list">
-            <li
-              v-for="p in products"
-              :key="p.id"
-              class="product-item"
-              :class="{
-                selected: selectedProduct?.id === p.id,
-                loading:  listLoading,
-              }"
+      <div v-else-if="products.length === 0" class="view-feedback">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+        <p>L'inventaire est vide ou la recherche ne correspond à aucun élément.</p>
+      </div>
+
+      <!-- THE TABLE -->
+      <div v-else class="table-wrapper shadow-md">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th width="80">ID</th>
+              <th>Nom du produit</th>
+              <th>Référence</th>
+              <th class="col-center">Stock disponible</th>
+              <th width="150">État</th>
+              <th width="120" class="col-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              v-for="p in products" 
+              :key="p.id" 
               @click="selectProduct(p)"
+              class="clickable-row"
+              :class="{ 'active-row': selectedProduct?.id === p.id }"
             >
-              <div class="item-main">
-                <span class="item-name">{{ p.name }}</span>
-                <code class="item-ref">{{ p.reference || '—' }}</code>
-              </div>
-              <div class="item-right">
-                <span class="qty-badge" :class="p.quantity > 0 ? 'qty-ok' : 'qty-zero'">
+              <td class="text-xs text-muted font-mono">#{{ p.id }}</td>
+              <td class="font-medium text-dark">{{ p.name }}</td>
+              <td><span class="ref-badge">{{ p.reference || 'N/A' }}</span></td>
+              <td class="col-center">
+                <span class="stock-pill" :class="p.quantity > 0 ? 'bg-green' : 'bg-red'">
                   {{ p.quantity }}
                 </span>
-                <span class="status-dot" :class="p.active ? 'active' : 'inactive'"></span>
-              </div>
-            </li>
-          </ul>
-
-          <div v-else class="list-empty">Aucun produit trouvé.</div>
-
-          <!-- Pagination -->
-          <div class="list-pagination">
-            <button class="btn btn--outline btn--sm" @click="prevPage" :disabled="listLoading || page <= 1">
-              ‹
-            </button>
-            <span class="page-info">Page {{ page }}</span>
-            <button class="btn btn--outline btn--sm" @click="nextPage" :disabled="listLoading || !hasMore">
-              ›
-            </button>
+              </td>
+              <td>
+                <span class="status-dot" :class="p.active ? 'dot-on' : 'dot-off'"></span>
+                {{ p.active ? 'Actif' : 'Inactif' }}
+              </td>
+              <td class="col-right">
+                <button class="btn-micro" @click.stop="selectProduct(p)">Modifier →</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <!-- ROW PAGINATION BENEATH TABLE -->
+        <div class="pagination-footer">
+          <p class="page-meta">Page actuelle : <strong>{{ page }}</strong></p>
+          <div class="pager-controls">
+            <button class="btn-page" @click="prevPage" :disabled="listLoading || page <= 1">← Préc</button>
+            <button class="btn-page" @click="nextPage" :disabled="listLoading || !hasMore">Suiv →</button>
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- ── Colonne droite : sélection + formulaire ──────────────────────── -->
-      <div class="form-col">
+    <!-- RIGHT OFFCANVAS PANEL (DRAWER) -->
+    <div class="drawer-backdrop" :class="{ 'visible': selectedProduct }" @click="clearSelection"></div>
+    <aside class="drawer-panel shadow-heavy" :class="{ 'open': selectedProduct }">
+      
+      <div v-if="selectedProduct" class="drawer-content">
+        <!-- Drawer Header -->
+        <header class="drawer-header">
+          <div class="header-left">
+            <h2>Édition du stock</h2>
+            <span class="product-id">ID: {{ selectedProduct.id }}</span>
+          </div>
+          <button class="btn-close-drawer" @click="clearSelection" title="Fermer le tiroir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
 
-        <!-- Placeholder si rien sélectionné -->
-        <div v-if="!selectedProduct" class="placeholder-card">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" opacity="0.25">
-            <path d="M8 28l8-8 6 6 8-8 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="4" y="4" width="32" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <p>Sélectionnez un produit dans la liste pour ajuster son stock.</p>
-        </div>
-
-        <template v-else>
-
-          <!-- Info produit sélectionné -->
-          <div class="card product-card">
-            <div class="product-card-header">
-              <div class="product-info">
-                <div class="product-name">{{ selectedProduct.name }}</div>
-                <div class="product-meta">
-                  <span class="item-id">#{{ selectedProduct.id }}</span>
-                  <code class="ref">{{ selectedProduct.reference || '—' }}</code>
-                  <span class="status-dot" :class="selectedProduct.active ? 'active' : 'inactive'">
-                    {{ selectedProduct.active ? 'Actif' : 'Inactif' }}
-                  </span>
-                  <span v-if="selectedCombinationLabel" class="comb-label">{{ selectedCombinationLabel }}</span>
-                </div>
-              </div>
-              <button class="btn btn--outline btn--sm" @click="clearSelection">
-                Désélectionner
-              </button>
+        <!-- Drawer Scrollable Body -->
+        <div class="drawer-body">
+          
+          <!-- Banner Success Inside Drawer -->
+          <div v-if="successInfo" class="toast-success">
+            <div class="toast-icon">✓</div>
+            <div class="toast-text">
+              Inventaire mis à jour : <br/>
+              <strong>{{ successInfo.quantityBefore }} → {{ successInfo.quantityAfter }}</strong> 
+              <span class="diff">({{ successInfo.delta > 0 ? '+' : '' }}{{ successInfo.delta }})</span>
             </div>
+          </div>
 
-            <!-- Déclinaisons -->
-            <div v-if="combinationsLoading" class="loading-line">Chargement des déclinaisons…</div>
-            <div v-else-if="hasCombinations" class="field">
-              <label class="label">Déclinaison</label>
-              <select v-model="selectedAttrId" class="input select">
-                <option value="0">Sans déclinaison</option>
+          <div class="product-identity-card">
+            <h3>{{ selectedProduct.name }}</h3>
+            <code>{{ selectedProduct.reference || 'Aucune référence' }}</code>
+          </div>
+
+          <!-- Section: Scope & Current Stock -->
+          <section class="form-section gradient-bg">
+            <div class="section-title">1. Sélection du scope</div>
+            
+            <div v-if="combinationsLoading" class="inline-loading">
+              <div class="spinner small"></div> <span>Chargement déclinaisons...</span>
+            </div>
+            <div class="field-wrap" v-else-if="hasCombinations">
+              <label>Déclinaison ciblée</label>
+              <select v-model="selectedAttrId" class="input input-filled">
+                <option value="0">--- Tronc commun (Aucune) ---</option>
                 <option v-for="c in combinations" :key="c.id" :value="String(c.id)">
-                  Déclinaison #{{ c.id }}{{ c.reference ? ` — ${c.reference}` : '' }}
+                  [#{{ c.id }}] {{ c.reference ? c.reference : 'Déclinaison standard' }}
                 </option>
               </select>
             </div>
-
-            <!-- Stock actuel -->
-            <div class="stock-current">
-              <span class="stock-label">Stock actuel</span>
-              <span class="stock-value" :class="{ 'qty-zero-big': currentQty === 0 }">
-                {{ currentQty }}
-                <span v-if="typeof currentQty === 'number'" class="unit">unités</span>
-              </span>
-              <span v-if="!currentStock && !combinationsLoading" class="text-warn">
-                Stock introuvable pour cette déclinaison.
-              </span>
+            <div v-else class="text-sm text-muted mb-4">
+              Ce produit ne possède aucune déclinaison.
             </div>
-          </div>
 
-          <!-- Succès -->
-          <div v-if="successInfo" class="alert alert--success">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Stock mis à jour :
-            <strong>{{ successInfo.quantityBefore }}</strong> →
-            <strong>{{ successInfo.quantityAfter }}</strong>
-            ({{ successInfo.delta > 0 ? '+' : '' }}{{ successInfo.delta }})
-          </div>
+            <div class="stock-display shadow-sm">
+              <span>Stock Quantitatif</span>
+              <div class="stock-amount" :class="{'text-danger': currentQty === 0}">
+                {{ currentQty }} <small>U</small>
+              </div>
+            </div>
+          </section>
 
-          <!-- Formulaire -->
-          <div class="card form-card">
-            <div class="card-title">Ajustement de stock</div>
+          <!-- Section: Mouvement -->
+          <section class="form-section">
+            <div class="section-title">2. Configuration de l'ajustement</div>
 
-            <div class="form-grid">
-              <div class="field">
-                <label class="label">Quantité <span class="required">*</span></label>
-                <input
-                  v-model="delta"
-                  type="number"
-                  class="input"
-                  placeholder="Ex : 50 ou -10"
+            <div class="split-fields">
+              <div class="field-wrap">
+                <label>Volumétrie <span class="req">*</span></label>
+                <input 
+                  v-model="delta" 
+                  type="number" 
+                  class="input input-filled big-number" 
+                  placeholder="+ / -" 
                   :disabled="submitting || !currentStock"
                 />
-                <span class="hint">Positif = entrée · Négatif = retrait</span>
               </div>
-
-              <div class="field">
-                <label class="label">Motif <span class="required">*</span></label>
-                <select v-model="movementType" class="input select" :disabled="submitting">
+              <div class="field-wrap flex-grow">
+                <label>Raison du mouvement <span class="req">*</span></label>
+                <select v-model="movementType" class="input input-filled" :disabled="submitting">
                   <option v-for="t in MOVEMENT_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
                 </select>
               </div>
-
-              <div class="field field--full">
-                <label class="label">Opérateur</label>
-                <input
-                  v-model="employeeName"
-                  type="text"
-                  class="input"
-                  placeholder="Nom de l'opérateur…"
-                  :disabled="submitting"
-                />
-              </div>
-
-              <div class="field field--full">
-                <label class="label">Commentaire</label>
-                <textarea
-                  v-model="comment"
-                  class="input textarea"
-                  rows="2"
-                  placeholder="Commentaire optionnel…"
-                  :disabled="submitting"
-                ></textarea>
-              </div>
             </div>
 
-            <!-- Aperçu -->
-            <div v-if="delta && currentStock && !isNaN(parseInt(delta))" class="preview-row">
-              <div class="preview-item">
-                <span class="preview-label">Actuel</span>
-                <span class="preview-value">{{ currentStock.quantity }}</span>
-              </div>
-              <div class="preview-arrow">{{ parseInt(delta) >= 0 ? '+' : '' }}{{ parseInt(delta) }}</div>
-              <div class="preview-item">
-                <span class="preview-label">Résultat</span>
-                <span
-                  class="preview-value"
-                  :class="{ 'text-error': currentStock.quantity + parseInt(delta) < 0 }"
-                >{{ currentStock.quantity + parseInt(delta) }}</span>
-              </div>
+            <div class="field-wrap mt-3">
+               <label>Identifiant Opérateur</label>
+               <input v-model="employeeName" type="text" class="input input-filled" placeholder="Nom/Prénom" :disabled="submitting" />
             </div>
 
-            <p v-if="submitError" class="text-error">{{ submitError }}</p>
-
-            <div class="form-actions">
-              <button class="btn btn--outline" @click="resetForm" :disabled="submitting">
-                Réinitialiser
-              </button>
-              <button
-                class="btn btn--primary"
-                @click="handleSubmit"
-                :disabled="submitting || !formValid || !currentStock"
-              >
-                <span v-if="submitting" class="spinner"></span>
-                <span v-else>Valider</span>
-              </button>
+            <div class="field-wrap mt-3">
+               <label>Notes (Optionnel)</label>
+               <textarea v-model="comment" class="input input-filled" rows="3" placeholder="Informations complémentaires..." :disabled="submitting"></textarea>
             </div>
-          </div>
 
-        </template>
+            <!-- Mathematical Preview -->
+            <div v-if="delta && currentStock && !isNaN(parseInt(delta))" class="math-preview">
+               <div class="math-block">
+                 <small>Ancien</small>
+                 <span>{{ currentStock.quantity }}</span>
+               </div>
+               <div class="math-op" :class="parseInt(delta) >= 0 ? 'plus' : 'minus'">
+                 {{ parseInt(delta) >= 0 ? '+' : '' }}{{ parseInt(delta) }}
+               </div>
+               <div class="math-block result">
+                 <small>Nouveau</small>
+                 <span :class="{'text-danger': currentStock.quantity + parseInt(delta) < 0}">
+                   {{ currentStock.quantity + parseInt(delta) }}
+                 </span>
+               </div>
+            </div>
+            
+            <div v-if="submitError" class="alert-box error mt-4">
+              {{ submitError }}
+            </div>
+          </section>
+        </div>
+
+        <!-- Drawer Footer Actions -->
+        <footer class="drawer-footer">
+           <button class="btn outline" @click="resetForm" :disabled="submitting">Effacer</button>
+           <button 
+             class="btn primary" 
+             @click="handleSubmit" 
+             :disabled="submitting || !formValid || !currentStock"
+           >
+             <div class="spinner small white" v-if="submitting"></div>
+             <span v-else>Appliquer</span>
+           </button>
+        </footer>
       </div>
-    </div>
+    </aside>
+
   </div>
 </template>
 
 <style scoped>
-.stock-add-page {
-  max-width: 1100px;
-}
-
-.page-header {
-  margin-bottom: 22px;
-}
-
-.page-header h1 { margin-bottom: 4px; }
-
-.page-desc {
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-/* Layout 2 colonnes */
-.layout {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-/* Card */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow-xs);
-}
-
-.list-card {
-  margin-bottom: 0;
-  padding: 14px 16px;
-}
-
-.card-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-/* Filtres liste */
-.list-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.search-wrap {
-  flex: 1;
+/* STRUCTURE ET RESET */
+.master-detail-layout {
+  min-height: calc(100vh - 100px);
+  background-color: #f4f7f6;
+  padding: 32px 40px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #2c3e50;
   position: relative;
 }
 
-.search-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
+.animate-fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-.search-input {
-  width: 100%;
-  padding-right: 32px;
-  box-sizing: border-box;
-}
-
-.status-filter {
-  width: 90px;
-  flex-shrink: 0;
-}
-
-.btn--icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-}
-
-.btn--icon:hover:not(:disabled) {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.btn--icon:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* Liste produits */
-.product-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 480px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.product-item {
+/* TOPBAR */
+.dashboard-topbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  transition: background var(--transition-fast);
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+.topbar-info h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1a252f;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
+}
+.topbar-info p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 15px;
 }
 
-.product-item:last-child {
-  border-bottom: none;
-}
-
-.product-item:hover {
-  background: var(--bg);
-}
-
-.product-item.selected {
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  border-left: 3px solid var(--accent);
-  padding-left: 9px;
-}
-
-.item-main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.item-name {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-}
-
-.item-ref {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-.item-right {
+.action-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 8px 16px;
+  gap: 12px;
+}
+.shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.shadow-md { box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+.shadow-heavy { box-shadow: -10px 0 30px rgba(0,0,0,0.15); }
+
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+}
+.icon { width: 18px; height: 18px; color: #95a5a6; }
+.input {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #34495e;
+  outline: none;
+  font-family: inherit;
+}
+.plain-input { flex-grow: 1; padding: 6px 0; }
+.plain-select {
+  cursor: pointer;
+  font-weight: 500;
+  color: #2c3e50;
+  padding-right: 12px;
+}
+.divider { width: 1px; height: 28px; background: #ecf0f1; }
+.btn-icon {
+  background: transparent; border: none; cursor: pointer;
+  padding: 6px; border-radius: 6px; transition: background 0.2s;
+}
+.btn-icon:hover { background: #f8f9fa; }
+.btn-icon .icon { color: #34495e; }
+.spin { animation: rotate 1s linear infinite; }
+@keyframes rotate { to { transform: rotate(360deg); } }
+
+/* TABLE CONTAINER */
+.data-view-container {
+  background: transparent;
+}
+.table-wrapper {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #eef2f5;
+}
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.products-table th {
+  background: #fdfefe;
+  padding: 18px 20px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7f8c8d;
+  font-weight: 700;
+  border-bottom: 2px solid #ecf0f1;
+}
+.products-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #ecf0f1;
+  vertical-align: middle;
+  transition: background 0.2s;
+}
+.clickable-row { cursor: pointer; }
+.clickable-row:hover { background: #fbfcfc; }
+.clickable-row:last-child td { border-bottom: none; }
+.active-row td {
+  background: #f0f4f8;
 }
 
-/* Badges */
-.qty-badge {
+/* TABLE CELLS STYLING */
+.font-mono { font-family: 'Courier New', Courier, monospace; }
+.text-xs { font-size: 12px; }
+.text-dark { color: #2c3e50; }
+.font-medium { font-weight: 600; }
+.text-muted { color: #95a5a6; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+.ref-badge {
+  background: #f4f6f7;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #7f8c8d;
+}
+
+.stock-pill {
   display: inline-block;
-  padding: 2px 7px;
-  border-radius: 10px;
-  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-weight: 700;
-  min-width: 28px;
+  font-size: 14px;
+  min-width: 32px;
   text-align: center;
 }
-
-.qty-ok   { background: #e8f5e9; color: #2e7d32; }
-.qty-zero { background: #fff3e0; color: #e65100; }
+.bg-green { background: #e8f8f5; color: #27ae60; }
+.bg-red { background: #fadbd8; color: #c0392b; }
 
 .status-dot {
-  width: 7px;
-  height: 7px;
+  display: inline-block;
+  width: 8px; height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
+  margin-right: 6px;
 }
+.dot-on { background: #2ecc71; }
+.dot-off { background: #bdc3c7; }
 
-.status-dot.active   { background: #4caf50; }
-.status-dot.inactive { background: #bdbdbd; }
-
-/* Pagination liste */
-.list-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-}
-
-.page-info {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-/* États */
-.list-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 20px;
-  color: var(--text-muted);
-  font-size: 13px;
-  justify-content: center;
-}
-
-.list-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13.5px;
-}
-
-/* Colonne droite */
-.form-col {
-  min-width: 0;
-}
-
-.placeholder-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  min-height: 260px;
-  background: var(--surface);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-muted);
-  text-align: center;
-  padding: 32px;
-}
-
-.placeholder-card p {
-  margin: 0;
-  font-size: 14px;
-  max-width: 260px;
-}
-
-/* Produit sélectionné */
-.product-card { margin-bottom: 14px; }
-
-.product-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.product-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 5px;
-}
-
-.product-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.item-id {
-  font-size: 11.5px;
-  color: var(--text-muted);
-}
-
-.ref {
-  font-size: 11.5px;
-  background: var(--bg);
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-family: monospace;
-  color: var(--text-muted);
-}
-
-.product-meta .status-dot {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 10px;
-  width: auto;
-  height: auto;
-}
-
-.product-meta .status-dot.active   { background: #e8f5e9; color: #2e7d32; }
-.product-meta .status-dot.inactive { background: #fce4ec; color: #c62828; }
-
-.comb-label {
-  font-size: 11.5px;
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.stock-current {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-top: 10px;
-}
-
-.stock-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.stock-value {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--accent);
-}
-
-.stock-value .unit {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-left: 3px;
-}
-
-.qty-zero-big { color: #e65100; }
-
-/* Formulaire */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.field--full { grid-column: 1 / -1; }
-
-.label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.required { color: var(--error, #e53935); }
-.hint { font-size: 11.5px; color: var(--text-muted); }
-
-.input {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 13.5px;
-  background: var(--bg);
-  color: var(--text);
-  transition: border-color var(--transition-fast);
-}
-
-.input:focus { outline: none; border-color: var(--accent-border); }
-.input:disabled { opacity: 0.5; cursor: not-allowed; }
-.select { cursor: pointer; }
-
-.textarea {
-  resize: vertical;
-  min-height: 60px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Aperçu */
-.preview-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  margin: 14px 0;
-}
-
-.preview-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.preview-label {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.preview-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.preview-arrow {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--accent);
-  flex: 1;
-  text-align: center;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-/* Alertes */
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.alert--success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #a5d6a7;
-}
-
-.text-error { color: var(--error, #e53935); font-size: 13px; margin-top: 6px; }
-.text-warn  { color: #e65100; font-size: 12px; }
-.loading-line { font-size: 13px; color: var(--text-muted); padding: 6px 0; }
-
-/* Boutons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+.btn-micro {
+  background: white;
+  border: 1px solid #bdc3c7;
+  border-radius: 6px;
+  padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
+  color: #34495e;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
+  transition: all 0.2s;
+}
+.clickable-row:hover .btn-micro {
+  border-color: #3498db;
+  color: #3498db;
 }
 
-.btn--primary { background: var(--accent); color: #fff; }
-.btn--primary:hover:not(:disabled) { filter: brightness(1.1); }
+/* PAGINATION */
+.pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #fdfefe;
+  border-top: 1px solid #ecf0f1;
+}
+.page-meta { margin: 0; font-size: 14px; color: #7f8c8d; }
+.page-meta strong { color: #2c3e50; }
+.pager-controls { display: flex; gap: 8px; }
+.btn-page {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #ecf0f1;
+  background: white;
+  font-weight: 600;
+  color: #34495e;
+  cursor: pointer;
+}
+.btn-page:hover:not(:disabled) { border-color: #bdc3c7; }
+.btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.btn--outline { background: var(--surface); border-color: var(--border); color: var(--text); }
-.btn--outline:hover:not(:disabled) { border-color: var(--accent-border); color: var(--accent); }
-
-.btn--sm { padding: 5px 10px; font-size: 12px; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* Spinners */
+/* STATES */
+.view-feedback {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 20px;
+  color: #95a5a6;
+  font-size: 16px;
+  background: white;
+  border-radius: 14px;
+}
+.empty-icon { width: 48px; height: 48px; margin-bottom: 20px; opacity: 0.5; }
+.error { color: #e74c3c; }
 .spinner {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
+  width: 20px; height: 20px;
+  border: 3px solid #ecf0f1;
+  border-top-color: #3498db;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: rotate 1s linear infinite;
+}
+.spinner.big { width: 40px; height: 40px; margin-bottom: 20px; }
+.spinner.small { width: 14px; height: 14px; border-width: 2px; }
+.spinner.white { border-color: rgba(255,255,255,0.3); border-top-color: white; }
+
+/* DRAWER (SLIDE-OVER) */
+.drawer-backdrop {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(44, 62, 80, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease-out;
+}
+.drawer-backdrop.visible { opacity: 1; pointer-events: auto; }
+
+.drawer-panel {
+  position: fixed; top: 0; right: 0;
+  width: 480px; max-width: 100vw; height: 100vh;
+  background: white;
+  z-index: 101;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; flex-direction: column;
+}
+.drawer-panel.open { transform: translateX(0); }
+.drawer-content { display: flex; flex-direction: column; height: 100%; }
+
+/* DRAWER HEADER */
+.drawer-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #ecf0f1;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.header-left h2 { margin: 0 0 4px 0; font-size: 22px; color: #2c3e50; }
+.header-left .product-id { font-size: 13px; color: #95a5a6; font-family: monospace; }
+.btn-close-drawer {
+  background: #f4f6f7;
+  border: none; border-radius: 50%;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: #7f8c8d; cursor: pointer; transition: all 0.2s;
+}
+.btn-close-drawer:hover { background: #fadbd8; color: #c0392b; transform: rotate(90deg); }
+
+/* DRAWER BODY */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  background: #fdfefe;
 }
 
-.spinner-dark {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+.toast-success {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: #e8f8f5; border: 1px solid #a3e4d7;
+  padding: 16px; border-radius: 8px; margin-bottom: 24px;
+}
+.toast-icon {
+  background: #27ae60; color: white; width: 24px; height: 24px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: bold; flex-shrink: 0;
+}
+.toast-text { color: #1e8449; font-size: 14px; line-height: 1.5; }
+.toast-text strong { font-size: 16px; }
+.diff { color: #27ae60; font-weight: 800; }
+
+.product-identity-card { margin-bottom: 24px; }
+.product-identity-card h3 { font-size: 18px; margin: 0 0 8px 0; color: #34495e; }
+.product-identity-card code { background: #fdf2e9; color: #d35400; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+
+/* FORMS SECTIONS */
+.form-section {
+  border: 1px solid #ecf0f1;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.gradient-bg { background: linear-gradient(145deg, #ffffff 0%, #f9fbfb 100%); }
+.section-title {
+  font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: #7f8c8d; margin-bottom: 16px;
+  border-bottom: 2px solid #ecf0f1; padding-bottom: 8px;
 }
 
-.spinning { animation: spin 0.8s linear infinite; }
+.field-wrap { display: flex; flex-direction: column; gap: 8px; }
+.field-wrap label { font-size: 13px; font-weight: 600; color: #34495e; }
+.req { color: #e74c3c; }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Responsive */
-@media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; }
-  .product-list { max-height: 300px; }
+.input-filled {
+  background: #f4f6f7;
+  border: 1px solid transparent;
+  padding: 12px 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  width: 100%;
 }
+.input-filled:focus { background: white; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.15); }
+.input-filled:disabled { opacity: 0.5; cursor: not-allowed; }
+textarea.input-filled { resize: vertical; }
 
-@media (max-width: 560px) {
-  .form-grid { grid-template-columns: 1fr; }
+.stock-display {
+  margin-top: 16px;
+  background: white; border-radius: 8px; padding: 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-left: 4px solid #3498db;
+}
+.stock-display span { font-size: 13px; font-weight: 600; color: #7f8c8d; }
+.stock-amount { font-size: 28px; font-weight: 800; color: #2c3e50; }
+.stock-amount small { font-size: 14px; color: #95a5a6; }
+
+.split-fields { display: flex; gap: 16px; }
+.flex-grow { flex-grow: 1; }
+.big-number { font-size: 18px; font-weight: 700; text-align: center; }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 24px; }
+
+/* MATH PREVIEW */
+.math-preview {
+  display: flex; justify-content: center; align-items: center; gap: 16px;
+  margin-top: 24px; padding: 20px;
+  background: #fbfcfc; border: 1px dashed #bdc3c7; border-radius: 10px;
+}
+.math-block { display: flex; flex-direction: column; align-items: center; }
+.math-block small { font-size: 11px; text-transform: uppercase; color: #95a5a6; font-weight: 700; }
+.math-block span { font-size: 24px; font-weight: 800; color: #34495e; }
+.math-block.result span { color: #2980b9; }
+.math-op {
+  font-size: 20px; font-weight: 800;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.math-op.plus { background: #e8f8f5; color: #27ae60; }
+.math-op.minus { background: #fdf2e9; color: #d35400; }
+
+.text-danger { color: #e74c3c !important; }
+.alert-box { padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+.alert-box.error { background: #fadbd8; color: #c0392b; }
+
+/* DRAWER FOOTER */
+.drawer-footer {
+  padding: 24px 32px;
+  border-top: 1px solid #ecf0f1;
+  background: #fdfefe;
+  display: flex; justify-content: flex-end; gap: 12px;
+}
+.btn {
+  padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  min-width: 120px; border: 1px solid transparent;
+}
+.btn.outline { background: transparent; border-color: #bdc3c7; color: #34495e; }
+.btn.outline:hover { background: #f4f6f7; }
+.btn.primary { background: #3498db; color: white; box-shadow: 0 4px 10px rgba(52,152,219,0.3); }
+.btn.primary:hover:not(:disabled) { background: #2980b9; box-shadow: 0 2px 5px rgba(52,152,219,0.3); transform: translateY(-1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .master-detail-layout { padding: 20px; }
+}
+@media (max-width: 768px) {
+  .dashboard-topbar { flex-direction: column; align-items: stretch; gap: 16px; }
+  .action-bar { flex-wrap: wrap; }
+  .search-group { width: 100%; }
+  .drawer-panel { width: 100vw; }
 }
 </style>
