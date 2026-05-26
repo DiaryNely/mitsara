@@ -7,408 +7,197 @@ const route = useRoute()
 const { store, logout } = useAuth()
 
 const adminEmail = computed(() => store.adminSession?.email || 'Admin')
+const userInitials = computed(() => {
+  const email = adminEmail.value
+  return email ? email.substring(0, 2).toUpperCase() : 'AD'
+})
 
 const handleLogout = async () => {
   await logout()
 }
 
-const breadcrumb = computed(() => {
-  const map = {
-    '/dashboard': ['Dashboard'],
-    '/benefice': ['Bénéfices'],
-    '/orders': ['Ventes', 'Commandes'],
-    '/reset': ['Maintenance', 'Reinitialisation'],
-    '/import': ['Catalogue', 'Import Wizard'],
-  }
-  return map[route.path] || ['Dashboard']
-})
-
-const navGroups = [
-  {
-    label: 'Principal',
-    items: [
-      { name: 'Dashboard', to: '/dashboard', enabled: true },
-      { name: 'Bénéfices', to: '/benefice', enabled: true },
-    ],
-  },
-  {
-    label: 'Ventes',
-    items: [
-      { name: 'Commandes', to: '/orders', enabled: true },
-      // { name: 'Paniers', to: '/carts', enabled: false },
-      // { name: 'Factures', to: '/invoices', enabled: false },
-    ],
-  },
-  {
-    label: 'Stock',
-    items: [
-      { name: 'Ajout stock', to: '/stock', enabled: true },
-      { name: 'Historique', to: '/stock-history', enabled: true },
-    ],
-  },
-  {
-    label: 'Maintenance',
-    items: [
-      { name: 'Reinitialisation', to: '/reset', enabled: true },
-      { name: 'Import de Donnee', to: '/import', enabled: true },
-    ],
-  },
+const navItems = [
+  { name: 'Dashboard', to: '/dashboard', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
+  { name: 'Bénéfices', to: '/benefice', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+  { name: 'Commandes', to: '/orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  { name: 'Ajout stock', to: '/stock', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+  { name: 'Historique', to: '/stock-history', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { name: 'Import', to: '/import', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
+  { name: 'Maintenance', to: '/reset', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z' }
 ]
 
 const isActive = (to) => route.path === to
 </script>
 
 <template>
-  <header class="header">
-
-    <div class="header-top">
-
-      <!-- ── Gauche : fil d'Ariane ── -->
-      <div class="header-start">
-        <div class="breadcrumb">
-          <span class="breadcrumb-home">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 8.5l6-5.5 6 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M3.5 7.5V13a1 1 0 001 1h7a1 1 0 001-1V7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <template v-for="(crumb, idx) in breadcrumb" :key="idx">
-            <svg class="breadcrumb-sep" width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span :class="idx === breadcrumb.length - 1 ? 'breadcrumb-current' : 'breadcrumb-parent'">
-              {{ crumb }}
-            </span>
-          </template>
+  <header class="admin-header">
+    <div class="header-container">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
         </div>
+        <span class="brand-name">PrestaManager</span>
       </div>
 
-      <!-- ── Centre : recherche ── -->
-      <div class="header-center">
-        <div class="search-box">
-          <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none">
-            <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <nav class="header-nav">
+        <router-link
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          class="nav-item"
+          :class="{ 'is-active': isActive(item.to) }"
+        >
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path :d="item.icon" />
           </svg>
-          <input type="text" placeholder="Rechercher..." class="search-input" id="global-search" />
-          <kbd class="search-kbd">⌘K</kbd>
-        </div>
-      </div>
+          <span class="nav-label">{{ item.name }}</span>
+        </router-link>
+      </nav>
 
-      <!-- ── Droite : actions ── -->
-      <div class="header-end">
-        <button class="header-btn" id="notifications-btn" title="Notifications">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M9 2a4.5 4.5 0 00-4.5 4.5v2.7L3 11.5h12L13.5 9.2V6.5A4.5 4.5 0 009 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-            <path d="M7.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-          </svg>
-          <span class="notification-badge">3</span>
-        </button>
-
-        <div class="header-vr" aria-hidden="true"></div>
-
-        <div class="user-area" id="user-menu">
-          <div class="user-avatar">
-            <span>A</span>
-          </div>
+      <div class="header-actions">
+        <div class="user-profile">
+          <div class="avatar">{{ userInitials }}</div>
           <div class="user-info">
-            <span class="user-name">{{ adminEmail }}</span>
-            <span class="user-role">Administrateur</span>
+            <span class="user-email">{{ adminEmail }}</span>
+            <span class="user-role">Admin</span>
           </div>
         </div>
 
-        <button class="logout-btn" type="button" @click="handleLogout">
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-            <path d="M5.5 7.5h7M10 5l2.5 2.5L10 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 3H3.5a1 1 0 00-1 1v7a1 1 0 001 1H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <button class="btn-logout" @click="handleLogout" title="Déconnexion">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          <span>Deconnexion</span>
         </button>
       </div>
-
     </div>
-
-    <nav class="header-nav" aria-label="Navigation">
-      <div v-for="group in navGroups" :key="group.label" class="nav-group">
-        <span class="nav-group-label">{{ group.label }}</span>
-        <div class="nav-links">
-          <template v-for="item in group.items" :key="item.to">
-            <router-link
-              v-if="item.enabled"
-              :to="item.to"
-              class="nav-link"
-              :class="{ active: isActive(item.to) }"
-            >
-              {{ item.name }}
-            </router-link>
-            <span v-else class="nav-link nav-link--disabled" :title="item.name + ' (bientot)'">
-              {{ item.name }}
-            </span>
-          </template>
-        </div>
-      </div>
-    </nav>
-
   </header>
 </template>
 
 <style scoped>
-/* ── Header shell ─────────────────────────────────────── */
-.header {
-  min-height: var(--header-height);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 12px rgba(15, 23, 42, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px 20px 8px;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
+.admin-header {
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-.header-top {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-/* ── Gauche ───────────────────────────────────────────── */
-.header-start {
+.header-container {
+  max-width: 1600px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  min-width: 0;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 24px;
+  gap: 32px;
 }
 
-.breadcrumb {
+.header-brand {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  min-width: 0;
-}
-
-.breadcrumb-home {
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 
-.breadcrumb-sep {
-  color: var(--text-muted);
-  opacity: 0.4;
-  flex-shrink: 0;
-}
-
-.breadcrumb-parent {
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.breadcrumb-current {
-  color: var(--text);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* ── Centre : recherche ───────────────────────────────── */
-.header-center {
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
 }
 
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-full);
-  padding: 7px 14px;
-  transition: all var(--transition-fast);
-  width: 280px;
+.brand-logo svg {
+  width: 20px;
+  height: 20px;
 }
 
-.search-box:focus-within {
-  border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-light);
-  background: var(--surface);
-  width: 320px;
+.brand-name {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #111827);
 }
 
-.search-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text);
-  width: 100%;
-  font-size: 13px;
-}
-
-.search-input::placeholder {
-  color: var(--text-muted);
-}
-
-.search-kbd {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 5px;
-  line-height: 1.6;
-  flex-shrink: 0;
-  font-family: inherit;
-}
-
-/* ── Droite : actions ─────────────────────────────────── */
-.header-end {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-/* ── Nav header ───────────────────────────────────────── */
 .header-nav {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  gap: 8px;
+  flex-grow: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.nav-group {
+.header-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-}
-
-.nav-group-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.nav-links {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.nav-link {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 99px;
+  color: var(--text-muted, #6b7280);
+  font-size: 14px;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  text-decoration: none;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.nav-link:hover {
-  border-color: var(--accent-border);
-  color: var(--accent);
+.nav-item:hover {
+  background: var(--bg, #f9fafb);
+  color: var(--text, #111827);
 }
 
-.nav-link.active {
-  background: var(--accent-light);
-  border-color: var(--accent-border);
-  color: var(--accent);
+.nav-item.is-active {
+  background: var(--accent-light, #eef2ff);
+  color: var(--accent, #4f46e5);
 }
 
-.nav-link--disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.nav-icon {
+  width: 18px;
+  height: 18px;
 }
 
-.header-vr {
-  width: 1px;
-  height: 22px;
-  background: var(--border);
-  margin: 0 6px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
   flex-shrink: 0;
 }
 
-.header-btn {
-  position: relative;
+.user-profile {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  transition: all var(--transition-fast);
+  gap: 12px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border, #e5e7eb);
 }
 
-.header-btn:hover {
-  background: var(--bg);
-  color: var(--text);
-}
-
-.notification-badge {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  background: var(--danger);
-  color: white;
-  font-size: 9px;
-  font-weight: 700;
-  width: 15px;
-  height: 15px;
+.avatar {
+  background: var(--bg, #f3f4f6);
+  color: var(--text, #111827);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 2px var(--surface);
-}
-
-.user-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px 5px 5px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.user-area:hover {
-  background: var(--bg);
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
   font-weight: 700;
-  font-size: 13px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  font-size: 14px;
+  border: 2px solid var(--border, #e5e7eb);
 }
 
 .user-info {
@@ -416,65 +205,69 @@ const isActive = (to) => route.path === to
   flex-direction: column;
 }
 
-.user-name {
-  font-size: 12.5px;
+.user-email {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text);
-  line-height: 1.3;
-  max-width: 140px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text, #111827);
 }
 
 .user-role {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  line-height: 1.3;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
 }
 
-.logout-btn {
+.btn-logout {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: var(--radius-md);
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
   background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.logout-btn:hover {
-  background: var(--danger-light);
-  color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.15);
+.btn-logout:hover {
+  background: var(--danger-light, #fee2e2);
+  color: var(--danger, #dc2626);
 }
 
-@media (max-width: 900px) {
-  .header-top {
-    grid-template-columns: 1fr auto;
-  }
-
-  .header-center {
-    display: none;
-  }
-
-  .nav-group-label {
-    display: none;
-  }
+.btn-logout svg {
+  width: 20px;
+  height: 20px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .user-info {
     display: none;
   }
+}
 
-  .logout-btn span {
-    display: none;
+@media (max-width: 768px) {
+  .header-container {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .header-brand {
+    flex-grow: 1;
+  }
+
+  .header-nav {
+    order: 3;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e5e7eb);
+  }
+
+  .user-profile {
+    padding-right: 12px;
+    gap: 8px;
   }
 }
 </style>
