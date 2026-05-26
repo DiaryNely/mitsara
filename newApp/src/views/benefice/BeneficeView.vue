@@ -2,7 +2,7 @@
 // BeneficeView — page complète dédiée à la fonctionnalité Bénéfice.
 
 import { computed, onMounted, ref } from 'vue'
-import { BeneficeSummary } from '../../components/benefice'
+import { BeneficeSummary, BeneficeCard } from '../../components/benefice'
 import { useBenefice } from '../../composables/benefice'
 import { getCategories } from '../../api/categories'
 import { loadStockSummaryByCategory } from '../../services/benefice/stockByCategoryService'
@@ -98,19 +98,45 @@ onMounted(() => {
 
     <BeneficeSummary auto-fetch>
       <template #extras>
-        <section class="benefice-view__stats">
-          <div class="benefice-view__stat">
-            <span class="benefice-view__stat-label">Ventes HT totales</span>
-            <span class="benefice-view__stat-value">{{ formatCurrency(total.salesHt) }}</span>
-          </div>
-          <div class="benefice-view__stat">
-            <span class="benefice-view__stat-label">Coût achat (mouvements)</span>
-            <span class="benefice-view__stat-value">{{ formatCurrency(total.purchasesHt) }}</span>
-          </div>
-          <div class="benefice-view__stat">
-            <span class="benefice-view__stat-label">Coût achat (produits vendus)</span>
-            <span class="benefice-view__stat-value">{{ formatCurrency(total.realPurchasesHt) }}</span>
-          </div>
+        <section class="ds-kpi-grid">
+          <BeneficeCard
+            label="Ventes HT totales"
+            :value="total.salesHt"
+            badgeClass="ds-badge-indigo"
+            :isStyleCurrency="true"
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </template>
+          </BeneficeCard>
+          
+          <BeneficeCard
+            label="Coût achat (mouvements)"
+            :value="total.purchasesHt"
+            badgeClass="ds-badge-emerald"
+            :isStyleCurrency="true"
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="ds-icon-sm">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </template>
+          </BeneficeCard>
+          
+          <BeneficeCard
+            label="Coût achat (produits vendus)"
+            :value="total.realPurchasesHt"
+            badgeClass="ds-badge-amber"
+            :isStyleCurrency="true"
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </template>
+          </BeneficeCard>
         </section>
         <section class="benefice-view__category-table" v-if="total.byCategoryDetailed">
           <h2>Bénéfice par catégorie</h2>
@@ -196,54 +222,21 @@ onMounted(() => {
   margin: 0;
 }
 
-.benefice-view__stats {
+.ds-kpi-grid {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.benefice-view__stat--highlight {
-  border-color: var(--accent-border, #a5b4fc);
-  background: var(--accent-light, #eef2ff);
-}
-
-.benefice-view__stat--highlight .benefice-view__stat-value {
-  color: var(--accent, #6366f1);
-}
-
-.benefice-view__stat {
-  padding: 16px 20px;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--surface, #fff);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.benefice-view__stat-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted, #6b7280);
-}
-
-.benefice-view__stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text, #111827);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
 }
 
 @media (max-width: 1024px) {
-  .benefice-view__stats {
+  .ds-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .benefice-view__stats {
+  .ds-kpi-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import OrdersList from '../../components/orders/OrdersList.vue'
+import { BeneficeCard } from '../../components/benefice'
 import { getOrdersWithOpenCarts, getOrderStates, resolveOrderStateIdByLabel, updateOrderStatusViaModule } from '../../api/orders'
 
 const orders = ref([])
@@ -135,58 +136,58 @@ onMounted(loadOrders)
     </div>
 
     <!-- ── Cartes stats ── -->
-    <div class="stats-grid">
-      <div class="stat-card stat-card--total">
-        <div class="stat-card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M6 7h8M6 10h8M6 13h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <div class="ds-kpi-grid">
+      <BeneficeCard
+        label="Total commandes"
+        :value="stats.total"
+        badgeClass="ds-badge-indigo"
+        :isStyleCurrency="false"
+      >
+        <template #icon>
+          <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-        </div>
-        <div class="stat-card-body">
-          <span class="stat-card-value">{{ stats.total }}</span>
-          <span class="stat-card-label">Total commandes</span>
-        </div>
-      </div>
+        </template>
+      </BeneficeCard>
 
-      <div class="stat-card stat-card--paid">
-        <div class="stat-card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <BeneficeCard
+        label="Paiements effectués"
+        :value="stats.paid"
+        badgeClass="ds-badge-emerald"
+        :isStyleCurrency="false"
+      >
+        <template #icon>
+          <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </div>
-        <div class="stat-card-body">
-          <span class="stat-card-value">{{ stats.paid }}</span>
-          <span class="stat-card-label">Paiements effectués</span>
-        </div>
-      </div>
+        </template>
+      </BeneficeCard>
 
-      <div class="stat-card stat-card--delivered">
-        <div class="stat-card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="4" y="5" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <BeneficeCard
+        label="Livrées"
+        :value="stats.delivered"
+        badgeClass="ds-badge-blue"
+        :isStyleCurrency="false"
+      >
+        <template #icon>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="ds-icon-sm">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-        </div>
-        <div class="stat-card-body">
-          <span class="stat-card-value">{{ stats.delivered }}</span>
-          <span class="stat-card-label">Livrées</span>
-        </div>
-      </div>
+        </template>
+      </BeneficeCard>
 
-      <div class="stat-card stat-card--cancelled">
-        <div class="stat-card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M8 8l4 4M12 8l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <BeneficeCard
+        label="Annulées"
+        :value="stats.cancelled"
+        badgeClass="ds-badge-red"
+        :isStyleCurrency="false"
+      >
+        <template #icon>
+          <svg viewBox="0 0 24 24" fill="none" class="ds-icon-sm" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </div>
-        <div class="stat-card-body">
-          <span class="stat-card-value">{{ stats.cancelled }}</span>
-          <span class="stat-card-label">Annulées</span>
-        </div>
-      </div>
+        </template>
+      </BeneficeCard>
     </div>
 
     <!-- ── Bannières ── -->
@@ -288,73 +289,16 @@ onMounted(loadOrders)
 }
 
 /* ── Cartes stats ─────────────────────────────────────── */
-.stats-grid {
+.ds-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-lg, 24px);
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-fast);
-}
-
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.stat-card-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-card--total .stat-card-icon {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-}
-
-.stat-card--paid .stat-card-icon {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.stat-card--cancelled .stat-card-icon {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-
-.stat-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-card-value {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-.stat-card-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+@media (max-width: 1024px) {
+  .ds-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── Bannières ────────────────────────────────────────── */
@@ -385,7 +329,7 @@ onMounted(loadOrders)
     align-items: flex-start;
   }
 
-  .stats-grid {
+  .ds-kpi-grid {
     grid-template-columns: 1fr;
   }
 }
