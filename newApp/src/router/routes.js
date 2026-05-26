@@ -15,6 +15,7 @@ import FrontOrderDetailView from '../views/front/FrontOrderDetailView.vue'
 import FrontDuplicateOrderView from '../views/front/FrontDuplicateOrderView.vue'
 import FrontLoginView from '../views/front/FrontLoginView.vue'
 import { beneficeRoute } from '../views/benefice/beneficeRoute'
+import FrontStockView from '../views/front/FrontStockView.vue'
 
 const routes = [
 	{
@@ -116,6 +117,12 @@ const routes = [
 		name: 'front-order-duplicate',
 		component: FrontDuplicateOrderView,
 		meta: { requiresAuth: false, layout: 'front', frontAuth: true },
+	},
+	{
+		path: '/front/stock-update',
+		name: 'front-stock-update',
+		component: FrontStockView,
+		meta: { requiresAuth: false, layout: 'front' },
 	},
 	beneficeRoute,
 ]
